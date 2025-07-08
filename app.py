@@ -10,14 +10,15 @@ BROADCAST_IP = '255.255.255.255'
 
 def main(display_name, user_name, avatar_source_file=None):
    user_id = f'{user_name}@{get_local_ip()}'
-   
+   peers = {}
+
    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow rebinding
    sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcast
    sock.bind(('', 50999))  # Bind to all interfaces on the given port
 
    threading.Thread(target=broadcast_loop, args=(sock, user_id, display_name, BROADCAST_IP, PORT, BROADCAST_INTERVAL), daemon=True).start()
-   listener_loop(sock, PORT, user_id)
+   listener_loop(sock, PORT, user_id, peers)
 
 if __name__ == "__main__":
     if len(sys.argv) < 3 or len(sys.argv) > 4:

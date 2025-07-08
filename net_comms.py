@@ -45,12 +45,11 @@ def broadcast_loop(sock: socket, user_id: str, name: str, broadcast_ip: str, por
         count += 1
         time.sleep(broadcast_interval)
 
-def listener_loop(sock: socket, port: int, user_id: str):
+def listener_loop(sock: socket, port: int, user_id: str, peers: dict):
     print(f"[LISTENING] UDP port {port} on {get_local_ip()}...\n")
 
     while True:
         data, addr = sock.recvfrom(65535)
-        peers = {}
         try:
             raw_msg = data.decode('utf-8')
             msg = parse_message(raw_msg)
