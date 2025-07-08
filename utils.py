@@ -11,4 +11,3 @@ def parse_message(raw: str) -> dict:
             key, value = line.split(': ', 1)
             result[key.strip()] = value.strip()
     return result
-    
