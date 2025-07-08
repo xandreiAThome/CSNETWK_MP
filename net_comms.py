@@ -1,6 +1,5 @@
 import socket
 import time
-import netifaces
 import ipaddress
 from utils import *
 

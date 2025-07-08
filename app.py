@@ -1,23 +1,33 @@
 import socket
 import sys
+import ipaddress
 from net_comms import get_local_ip, broadcast_loop, listener_loop
 from utils import *
 import threading
 
 PORT = 50999
-BROADCAST_INTERVAL = 5
-BROADCAST_IP = '255.255.255.255'
+BROADCAST_INTERVAL = 1
+MASK = '255.255.255.0'
 
 def main(display_name, user_name, avatar_source_file=None):
    user_id = f'{user_name}@{get_local_ip()}'
    peers = {}
+   broadcast_ip = str(ipaddress.IPv4Network(get_local_ip() + '/' + MASK, False).broadcast_address)
 
-   sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-   sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow rebinding
-   sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcast
-   sock.bind(('', 50999))  # Bind to all interfaces on the given port
+   try:
+       sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+       sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow rebinding
+       sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcast
+       sock.bind(('', PORT))  # Use PORT constant
+       print(f"[INFO] Socket bound to port {PORT}")
+       print(f"[INFO] Local IP: {get_local_ip()}")
+       print(f"[INFO] user_id: {user_id}")
+       print(f"[INFO] Broadcasting to: {broadcast_ip}")
+   except Exception as e:
+       print(f"[ERROR] Failed to create/bind socket: {e}")
+       return
 
-   threading.Thread(target=broadcast_loop, args=(sock, user_id, display_name, BROADCAST_IP, PORT, BROADCAST_INTERVAL), daemon=True).start()
+   threading.Thread(target=broadcast_loop, args=(sock, user_id, display_name, broadcast_ip, PORT, BROADCAST_INTERVAL), daemon=True).start()
    listener_loop(sock, PORT, user_id, peers)
 
 if __name__ == "__main__":
