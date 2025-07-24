@@ -4,31 +4,41 @@ import ipaddress
 from net_comms import get_local_ip, broadcast_loop, listener_loop
 from utils import *
 import threading
+import globals
 
-PORT = 50999
-BROADCAST_INTERVAL = 1
-MASK = '255.255.255.0'
+# user object (stored in peers and following dicts) has the following fields
+# TODO add the avatar fields
+# "ip", "display_name, "status","last_seen"
+
 
 def main(display_name, user_name, avatar_source_file=None):
-   user_id = f'{user_name}@{get_local_ip()}'
    peers = {}
-   broadcast_ip = str(ipaddress.IPv4Network(get_local_ip() + '/' + MASK, False).broadcast_address)
+   following = {}
+   globals.local_ip = get_local_ip()
+   globals.user_id = f'{user_name}@{globals.local_ip}'
+   globals.broadcast_ip = str(ipaddress.IPv4Network(globals.local_ip + '/' + globals.MASK, False).broadcast_address)
+   globals.display_name = display_name
 
    try:
        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow rebinding
        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcast
-       sock.bind(('', PORT))  # Use PORT constant
-       print(f"[INFO] Socket bound to port {PORT}")
-       print(f"[INFO] Local IP: {get_local_ip()}")
-       print(f"[INFO] user_id: {user_id}")
-       print(f"[INFO] Broadcasting to: {broadcast_ip}")
+       sock.bind(('', globals.PORT))  # Use PORT constant
+       print(f"[INFO] Socket bound to port {globals.PORT}")
+       print(f"[INFO] Local IP: {globals.local_ip}")
+       print(f"[INFO] user_id: {globals.user_id}")
+       print(f"[INFO] Broadcasting to: {globals.broadcast_ip}")
    except Exception as e:
        print(f"[ERROR] Failed to create/bind socket: {e}")
        return
 
-   threading.Thread(target=broadcast_loop, args=(sock, user_id, display_name, broadcast_ip, PORT, BROADCAST_INTERVAL), daemon=True).start()
-   listener_loop(sock, PORT, user_id, peers)
+   threading.Thread(target=broadcast_loop, args=(sock,), daemon=True).start()
+   threading.Thread(target=listener_loop, args=(sock, peers), daemon=True).start()
+
+   while True:
+        cmd = input("Enter command: ")
+        if cmd == "exit":
+            break
 
 if __name__ == "__main__":
     if len(sys.argv) < 3 or len(sys.argv) > 4:
