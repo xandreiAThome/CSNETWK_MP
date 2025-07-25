@@ -2,7 +2,8 @@ from datetime import datetime, timezone
 import socket
 import time
 from utils import *
-import globals
+import utils.globals as globals
+from follow import handle_follow_message
 
 
 def get_local_ip():
@@ -15,38 +16,38 @@ def get_local_ip():
     except Exception:
         return "127.0.0.1"
     
-def send_ping(sock: socket):
+def send_ping(sock: socket, app_state: AppState):
     message = {
         "TYPE": "PING",
-        "USER_ID": globals.user_id
+        "USER_ID": app_state.user_id
     }
 
-    sock.sendto(build_message(message).encode('utf-8'), (globals.broadcast_ip, globals.PORT))
+    sock.sendto(build_message(message).encode('utf-8'), (app_state.broadcast_ip, globals.PORT))
 
-def send_profile(sock: socket, status: str):
+def send_profile(sock: socket, status: str, app_state: AppState):
     message = {
         "TYPE": "PROFILE",
-        "USER_ID": globals.user_id,
-        "DISPLAY_NAME": globals.display_name,
+        "USER_ID": app_state.user_id,
+        "DISPLAY_NAME": app_state.display_name,
         "STATUS": status,
     }
 
-    sock.sendto(build_message(message).encode('utf-8'), (globals.broadcast_ip, globals.PORT))
+    sock.sendto(build_message(message).encode('utf-8'), (app_state.broadcast_ip, globals.PORT))
 
-def broadcast_loop(sock: socket):
+def broadcast_loop(sock: socket, app_state: AppState):
     # send profile every 3rd time, else send ping
     count = 0
     while True:
         if count % 3 == 0:
-            send_profile(sock,'BROADCASTING')
+            send_profile(sock,'BROADCASTING', app_state)
             count = 0
         else:
-            send_ping(sock)
+            send_ping(sock, app_state)
         count += 1
         time.sleep(globals.BROADCAST_INTERVAL)
 
-def listener_loop(sock: socket, peers: dict):
-    print(f"[LISTENING] UDP port {globals.PORT} on {get_local_ip()}...\n")
+def listener_loop(sock: socket, app_state: AppState):
+    print(f"[LISTENING] UDP port {globals.PORT} on {app_state.local_ip}...\n")
 
     while True:
         data, addr = sock.recvfrom(65535)
@@ -58,7 +59,7 @@ def listener_loop(sock: socket, peers: dict):
             if msg_type == "PING":
                 continue 
 
-            if msg.get("USER_ID") == globals.user_id:
+            if msg.get("USER_ID") == app_state.user_id:
                 continue  # Message is from self
 
             elif msg_type == "PROFILE":
@@ -67,16 +68,18 @@ def listener_loop(sock: socket, peers: dict):
                 status = msg.get("STATUS", "")
                 print(f"[PROFILE] {display_name}: {status}")
                 # Avatar is optional — we ignore AVATAR_* if unsupported
-                peers[user_id] = {
+                app_state.peers[user_id] = {
                     "ip": addr[0],
                     "display_name": display_name,
                     "status": status,
                     "last_seen": datetime.now(timezone.utc).timestamp()
                 }
-                print(peers)
+                print(app_state.peers)
             elif msg_type == "FOLLOW":
+                handle_follow_message(msg, addr[0],  app_state)
                 display_name = msg.get("DISPLAY_NAME", "Unknown")
                 print(f"[FOLLOW] {display_name} followed you")
+                print(app_state.followers)
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:
