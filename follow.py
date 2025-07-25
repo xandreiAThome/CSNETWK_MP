@@ -23,7 +23,7 @@ def send_follow(sock:socket, target_user_id:str, app_state: AppState):
     
     sock.sendto(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))
 
-def handle_follow_message(message: dict, addr: str, app_state: AppState):
+def handle_follow_message(message: dict, app_state: AppState):
     # verify TIMESTAMP, TOKEN, etc.
     # update followers list
     timestamp_now = datetime.now(timezone.utc).timestamp()

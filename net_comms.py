@@ -64,6 +64,7 @@ def listener_loop(sock: socket, app_state: AppState):
 
     while True:
         data, addr = sock.recvfrom(65535)
+        print(addr)
         try:
             raw_msg = data.decode('utf-8')
             msg = parse_message(raw_msg)
@@ -77,7 +78,7 @@ def listener_loop(sock: socket, app_state: AppState):
             elif msg_type == "PROFILE":
                 handle_profile(msg, addr[0], app_state)
             elif msg_type == "FOLLOW":
-                handle_follow_message(msg, addr[0],  app_state)
+                handle_follow_message(msg, app_state)
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:
