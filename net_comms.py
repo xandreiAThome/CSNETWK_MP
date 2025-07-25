@@ -41,7 +41,7 @@ def handle_profile(msg: dict, addr:str, app_state: AppState):
     # print(f"[PROFILE] {display_name}: {status}")
     # Avatar is optional — we ignore AVATAR_* if unsupported
     app_state.peers[user_id] = {
-        "ip": addr[0],
+        "ip": addr,
         "display_name": display_name,
         "status": status,
         "last_seen": datetime.now(timezone.utc).timestamp()
@@ -64,7 +64,6 @@ def listener_loop(sock: socket, app_state: AppState):
 
     while True:
         data, addr = sock.recvfrom(65535)
-        print(addr)
         try:
             raw_msg = data.decode('utf-8')
             msg = parse_message(raw_msg)
