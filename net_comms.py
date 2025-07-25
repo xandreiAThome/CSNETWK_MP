@@ -94,6 +94,9 @@ def listener_loop(sock: socket, app_state: AppState):
             if user_ip != addr[0]:
                 continue
 
+            if msg.get("FROM") == app_state.user_id:
+                continue  # Message is from self again, curse the msg formats
+
             # core features
             if msg_type == "FOLLOW":
                 handle_follow_message(msg, app_state)
