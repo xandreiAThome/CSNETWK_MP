@@ -6,9 +6,10 @@ from datetime import datetime, timezone
 from utils import *
 
 
-def send_follow(sock:socket, target_user_id:str, target_user: dict, app_state: AppState):
+def send_follow(sock:socket, target_user_id:str, app_state: AppState):
     # construct FOLLOW message
     # send to target_ip via unicast UDP
+    target_user = app_state.peers[target_user_id]
     timestamp = datetime.now(timezone.utc).timestamp()
     app_state.following.add(target_user_id)
     message = {

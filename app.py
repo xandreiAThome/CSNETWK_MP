@@ -4,6 +4,7 @@ import ipaddress
 from net_comms import get_local_ip, broadcast_loop, listener_loop
 from utils import AppState, globals
 import threading
+from follow import send_follow
 
 # user object (stored in peers and following dicts) has the following fields
 # TODO add the avatar fields
@@ -14,7 +15,7 @@ def main(display_name, user_name, avatar_source_file=None):
    app_state = AppState()
    app_state.local_ip = get_local_ip()
    app_state.broadcast_ip = str(ipaddress.IPv4Network(app_state.local_ip + '/' + globals.MASK, False).broadcast_address)
-   
+
    app_state.user_id = f'{user_name}@{app_state.local_ip}'
    app_state.display_name = display_name
 
@@ -38,6 +39,10 @@ def main(display_name, user_name, avatar_source_file=None):
         cmd = input("Enter command: ")
         if cmd == "exit":
             break
+        elif cmd == "follow":
+            target_user_id = input("Enter target user id")
+            send_follow(sock, target_user_id, app_state)
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 3 or len(sys.argv) > 4:
