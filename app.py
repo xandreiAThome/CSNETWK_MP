@@ -46,6 +46,8 @@ def main(display_name, user_name, avatar_source_file=None):
             print(app_state.followers)
         elif cmd == "check_peers":
             print(app_state.peers)
+        elif cmd == "check_following":
+            print(app_state.following)
 
 
 if __name__ == "__main__":

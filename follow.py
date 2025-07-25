@@ -20,8 +20,8 @@ def send_follow(sock:socket, target_user_id:str, app_state: AppState):
         "TIMESTAMP": timestamp,
         "TOKEN": f'{app_state.user_id}|{timestamp + globals.TTL}|follow'
     }
-    
     sock.sendto(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))
+    print(f'You followed {target_user_id}')
 
 def handle_follow_message(message: dict, app_state: AppState):
     # verify TIMESTAMP, TOKEN, etc.
