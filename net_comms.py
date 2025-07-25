@@ -74,12 +74,10 @@ def listener_loop(sock: socket, app_state: AppState):
                     "status": status,
                     "last_seen": datetime.now(timezone.utc).timestamp()
                 }
-                print(app_state.peers)
             elif msg_type == "FOLLOW":
                 handle_follow_message(msg, addr[0],  app_state)
                 display_name = msg.get("DISPLAY_NAME", "Unknown")
                 print(f"[FOLLOW] {display_name} followed you")
-                print(app_state.followers)
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:

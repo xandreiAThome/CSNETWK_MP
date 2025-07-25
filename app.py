@@ -42,6 +42,10 @@ def main(display_name, user_name, avatar_source_file=None):
         elif cmd == "follow":
             target_user_id = input("Enter target user id")
             send_follow(sock, target_user_id, app_state)
+        elif cmd == "check_followers":
+            print(app_state.followers)
+        elif cmd == "check_peers":
+            print(app_state.peers)
 
 
 if __name__ == "__main__":

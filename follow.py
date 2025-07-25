@@ -29,10 +29,11 @@ def handle_follow_message(message: dict, addr: str, app_state: AppState):
     timestamp_now = datetime.now(timezone.utc).timestamp()
     token:str = message["TOKEN"] 
     user_id, timestamp_ttl, scope = token.split('|')
+    timestamp_ttl = float(timestamp_ttl)
     
     if timestamp_ttl - timestamp_now > 0 and scope == 'follow':
         app_state.followers.add(user_id)
-    ...
+    
 
 def send_unfollow(sock, target_user_id, target_ip):
     # construct and send UNFOLLOW message
