@@ -3,7 +3,7 @@ import socket
 import time
 from utils import *
 import utils.globals as globals
-from follow import handle_follow_message
+from follow import handle_follow_message, handle_unfollow_message
 
 
 def get_local_ip():
@@ -80,6 +80,8 @@ def listener_loop(sock: socket, app_state: AppState):
                 handle_profile(msg, addr[0], app_state)
             elif msg_type == "FOLLOW":
                 handle_follow_message(msg, app_state)
+            elif msg_type == "UNFOLLOW":
+                handle_unfollow_message(msg, app_state)
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:

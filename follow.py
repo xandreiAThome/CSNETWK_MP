@@ -75,7 +75,7 @@ def handle_unfollow_message(message, app_state: AppState):
     if timestamp_ttl - timestamp_now > 0 and scope == 'follow':
         app_state.followers.discard(user_id)
         display_name = app_state.peers[user_id]["display_name"]
-        print(f"\n[FOLLOW] {display_name} followed you", end='\n\n')
+        print(f"\n[FOLLOW] {display_name} unfollowed you", end='\n\n')
 
 
 
