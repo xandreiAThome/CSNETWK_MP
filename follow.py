@@ -33,6 +33,8 @@ def handle_follow_message(message: dict, addr: str, app_state: AppState):
     
     if timestamp_ttl - timestamp_now > 0 and scope == 'follow':
         app_state.followers.add(user_id)
+        display_name = app_state.peers[user_id]["display_name"]
+        print(f"[FOLLOW] {display_name} followed you")
     
 
 def send_unfollow(sock, target_user_id, target_ip):

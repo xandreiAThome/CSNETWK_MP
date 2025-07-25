@@ -40,7 +40,7 @@ def main(display_name, user_name, avatar_source_file=None):
         if cmd == "exit":
             break
         elif cmd == "follow":
-            target_user_id = input("Enter target user id")
+            target_user_id = input("Enter target user id: ")
             send_follow(sock, target_user_id, app_state)
         elif cmd == "check_followers":
             print(app_state.followers)

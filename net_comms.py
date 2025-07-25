@@ -33,6 +33,19 @@ def send_profile(sock: socket, status: str, app_state: AppState):
     }
 
     sock.sendto(build_message(message).encode('utf-8'), (app_state.broadcast_ip, globals.PORT))
+    
+def handle_profile(msg: dict, addr:str, app_state: AppState):
+    display_name = msg.get("DISPLAY_NAME", "Unknown")
+    user_id = msg.get("USER_ID")
+    status = msg.get("STATUS", "")
+    # print(f"[PROFILE] {display_name}: {status}")
+    # Avatar is optional — we ignore AVATAR_* if unsupported
+    app_state.peers[user_id] = {
+        "ip": addr[0],
+        "display_name": display_name,
+        "status": status,
+        "last_seen": datetime.now(timezone.utc).timestamp()
+    }
 
 def broadcast_loop(sock: socket, app_state: AppState):
     # send profile every 3rd time, else send ping
@@ -61,23 +74,10 @@ def listener_loop(sock: socket, app_state: AppState):
 
             if msg.get("USER_ID") == app_state.user_id:
                 continue  # Message is from self
-
             elif msg_type == "PROFILE":
-                display_name = msg.get("DISPLAY_NAME", "Unknown")
-                user_id = msg.get("USER_ID")
-                status = msg.get("STATUS", "")
-                print(f"[PROFILE] {display_name}: {status}")
-                # Avatar is optional — we ignore AVATAR_* if unsupported
-                app_state.peers[user_id] = {
-                    "ip": addr[0],
-                    "display_name": display_name,
-                    "status": status,
-                    "last_seen": datetime.now(timezone.utc).timestamp()
-                }
+                handle_profile(msg, addr[0], app_state)
             elif msg_type == "FOLLOW":
                 handle_follow_message(msg, addr[0],  app_state)
-                display_name = msg.get("DISPLAY_NAME", "Unknown")
-                print(f"[FOLLOW] {display_name} followed you")
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:
