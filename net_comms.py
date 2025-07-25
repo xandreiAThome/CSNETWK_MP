@@ -51,19 +51,16 @@ def handle_profile(msg: dict, addr:str, app_state: AppState):
         }
 
 def broadcast_loop(sock: socket, app_state: AppState):
+    send_profile(sock, "BROADCASTING", app_state)
     # send profile every 3rd time, else send ping
-    count = 0
     while True:
-        if count % 3 == 0:
-            send_profile(sock,'BROADCASTING', app_state)
-            count = 0
-        else:
-            send_ping(sock, app_state)
-        count += 1
+        send_ping(sock, app_state)
         time.sleep(globals.BROADCAST_INTERVAL)
 
 def listener_loop(sock: socket, app_state: AppState):
     print(f"[LISTENING] UDP port {globals.PORT} on {app_state.local_ip}...\n")
+    min_profile_interval = 5  # seconds
+    last_profile_time = 0
 
     while True:
         data, addr = sock.recvfrom(65535)
@@ -71,12 +68,21 @@ def listener_loop(sock: socket, app_state: AppState):
             raw_msg = data.decode('utf-8')
             msg = parse_message(raw_msg)
             msg_type = msg.get("TYPE")
-
-            if msg_type == "PING":
-                continue 
+            username, user_ip = msg.get("USER_ID").split('@')
 
             if msg.get("USER_ID") == app_state.user_id:
                 continue  # Message is from self
+
+            # checks if the declared ip is the same as the source ip
+            if user_ip != addr[0]:
+                continue
+
+            # only send profile if interval has passed, pings just trigger the check
+            if msg_type == "PING":
+                now = time.time()
+                if (now - last_profile_time) > min_profile_interval:
+                    send_profile(sock, "BROADCASTING", app_state)
+                    last_profile_time = now
             elif msg_type == "PROFILE":
                 handle_profile(msg, addr[0], app_state)
             elif msg_type == "FOLLOW":
