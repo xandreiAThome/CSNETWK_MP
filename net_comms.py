@@ -68,24 +68,34 @@ def listener_loop(sock: socket, app_state: AppState):
             raw_msg = data.decode('utf-8')
             msg = parse_message(raw_msg)
             msg_type = msg.get("TYPE")
-            username, user_ip = msg.get("USER_ID").split('@')
 
             if msg.get("USER_ID") == app_state.user_id:
                 continue  # Message is from self
 
-            # checks if the declared ip is the same as the source ip
-            if user_ip != addr[0]:
-                continue
-
-            # only send profile if interval has passed, pings just trigger the check
+            # discovery
+              # only send profile if interval has passed, pings just trigger the check
             if msg_type == "PING":
                 now = time.time()
                 if (now - last_profile_time) > min_profile_interval:
                     send_profile(sock, "BROADCASTING", app_state)
                     last_profile_time = now
+                continue
             elif msg_type == "PROFILE":
                 handle_profile(msg, addr[0], app_state)
-            elif msg_type == "FOLLOW":
+                continue
+
+            # check for core feature msgs that the ip hasnt been spoofed
+            # I am crying from the fact that the format of msgs are inconsistent
+            # some only have user_id and others have FROM which basically is the user_id of the sender
+            # so I need to seperate the if else of PING AND PROFILE from the rest of the msg_types
+            # REMINDER that POST also has user_id instead of FROM :-(
+            print(msg_type)
+            username, user_ip = msg.get("FROM").split('@')
+            if user_ip != addr[0]:
+                continue
+
+            # core features
+            if msg_type == "FOLLOW":
                 handle_follow_message(msg, app_state)
             elif msg_type == "UNFOLLOW":
                 handle_unfollow_message(msg, app_state)
