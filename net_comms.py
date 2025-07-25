@@ -3,7 +3,7 @@ import socket
 import time
 from utils import *
 import utils.globals as globals
-from follow import handle_follow_message
+from follow import handle_follow_message, handle_unfollow_message
 
 
 def get_local_ip():
@@ -38,7 +38,9 @@ def handle_profile(msg: dict, addr:str, app_state: AppState):
     display_name = msg.get("DISPLAY_NAME", "Unknown")
     user_id = msg.get("USER_ID")
     status = msg.get("STATUS", "")
-    # print(f"[PROFILE] {display_name}: {status}")
+
+    if user_id not in app_state.peers:
+        print(f"\n[PROFILE] (Detected User) {display_name}: {status}", end='\n\n')
     # Avatar is optional — we ignore AVATAR_* if unsupported
     app_state.peers[user_id] = {
         "ip": addr,
@@ -78,6 +80,8 @@ def listener_loop(sock: socket, app_state: AppState):
                 handle_profile(msg, addr[0], app_state)
             elif msg_type == "FOLLOW":
                 handle_follow_message(msg, app_state)
+            elif msg_type == "UNFOLLOW":
+                handle_unfollow_message(msg, app_state)
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:
