@@ -12,7 +12,10 @@ def send_follow(sock:socket, target_user_id:str, app_state: AppState):
     try:   
         target_user = app_state.peers[target_user_id]
         timestamp_now = datetime.now(timezone.utc).timestamp()
-        app_state.following.add(target_user_id)
+
+        with app_state.lock:
+            app_state.following.add(target_user_id)
+
         message = {
             "TYPE": "FOLLOW",
             "MESSAGE_ID": uuid.uuid4(),
@@ -35,7 +38,9 @@ def handle_follow_message(message: dict, app_state: AppState):
     timestamp_ttl = float(timestamp_ttl)
     
     if timestamp_ttl - timestamp_now > 0 and scope == 'follow':
-        app_state.followers.add(user_id)
+        with app_state.lock:
+            app_state.followers.add(user_id)
+
         display_name = app_state.peers[user_id]["display_name"]
         print(f"\n[FOLLOW] {display_name} followed you", end='\n\n')
     
@@ -56,7 +61,9 @@ def send_unfollow(sock: socket, target_user_id: str, app_state: AppState):
         }
 
         try:
-            app_state.following.remove(target_user_id)
+            with app_state.lock:
+                app_state.following.remove(target_user_id)
+
             print(f'\n[FOLLOW] You unfollowed {target_user["display_name"]}', end='\n\n')
             sock.sendto(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))
         except KeyError as e:
@@ -73,7 +80,9 @@ def handle_unfollow_message(message, app_state: AppState):
     timestamp_ttl = float(timestamp_ttl)
     
     if timestamp_ttl - timestamp_now > 0 and scope == 'follow':
-        app_state.followers.discard(user_id)
+        with app_state.lock:
+            app_state.followers.discard(user_id)
+            
         display_name = app_state.peers[user_id]["display_name"]
         print(f"\n[FOLLOW] {display_name} unfollowed you", end='\n\n')
 

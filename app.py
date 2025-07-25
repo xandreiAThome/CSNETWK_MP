@@ -7,6 +7,10 @@ import threading
 from follow import send_follow, send_unfollow
 from pprint import pprint
 
+# TODO message queue to wait for acks
+# proccess action after getting ack
+# retransmission with max attempts if msg not ack 
+
 # Persistent Live variables in app_state class
 # App flow for now is
 # - 2 seperate threads for broadcasting profile and listening to LSP messages

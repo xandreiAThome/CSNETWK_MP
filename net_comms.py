@@ -42,12 +42,13 @@ def handle_profile(msg: dict, addr:str, app_state: AppState):
     if user_id not in app_state.peers:
         print(f"\n[PROFILE] (Detected User) {display_name}: {status}", end='\n\n')
     # Avatar is optional — we ignore AVATAR_* if unsupported
-    app_state.peers[user_id] = {
-        "ip": addr,
-        "display_name": display_name,
-        "status": status,
-        "last_seen": datetime.now(timezone.utc).timestamp()
-    }
+    with app_state.lock:
+        app_state.peers[user_id] = {
+            "ip": addr,
+            "display_name": display_name,
+            "status": status,
+            "last_seen": datetime.now(timezone.utc).timestamp()
+        }
 
 def broadcast_loop(sock: socket, app_state: AppState):
     # send profile every 3rd time, else send ping

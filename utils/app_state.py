@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from typing import Dict, Set, Optional
+from threading import Lock
 
 @dataclass
 class AppState:
@@ -9,6 +10,7 @@ class AppState:
 
     local_ip: Optional[str] = None
     broadcast_ip: Optional[str] = None
+    lock: Lock = field(default_factory=Lock, repr=False, compare=False)
 
 # user object (stored in peers dict) has the following fields
 # TODO add the avatar fields
