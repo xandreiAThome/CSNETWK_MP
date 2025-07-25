@@ -38,7 +38,9 @@ def handle_profile(msg: dict, addr:str, app_state: AppState):
     display_name = msg.get("DISPLAY_NAME", "Unknown")
     user_id = msg.get("USER_ID")
     status = msg.get("STATUS", "")
-    # print(f"[PROFILE] {display_name}: {status}")
+
+    if user_id not in app_state.peers:
+        print(f"\n[PROFILE] (Detected User) {display_name}: {status}", end='\n\n')
     # Avatar is optional — we ignore AVATAR_* if unsupported
     app_state.peers[user_id] = {
         "ip": addr,

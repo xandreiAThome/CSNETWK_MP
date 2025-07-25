@@ -4,11 +4,13 @@ import ipaddress
 from net_comms import get_local_ip, broadcast_loop, listener_loop
 from utils import AppState, globals
 import threading
-from follow import send_follow
+from follow import send_follow, send_unfollow
+from pprint import pprint
 
-# user object (stored in peers and following dicts) has the following fields
-# TODO add the avatar fields
-# "ip", "display_name, "status","last_seen"
+# Persistent Live variables in app_state class
+# App flow for now is
+# - 2 seperate threads for broadcasting profile and listening to LSP messages
+# - Main loop in app.py for executing commands
 
 
 def main(display_name, user_name, avatar_source_file=None):
@@ -36,18 +38,27 @@ def main(display_name, user_name, avatar_source_file=None):
    threading.Thread(target=listener_loop, args=(sock, app_state), daemon=True).start()
 
    while True:
-        cmd = input("Enter command: ")
+        cmd = input("Enter command: \n")
         if cmd == "exit":
             break
         elif cmd == "follow":
-            target_user_id = input("Enter target user id: ")
+            target_user_id = input('Enter target user id: \n')
             send_follow(sock, target_user_id, app_state)
+        elif cmd == "unfollow":
+            target_user_id = input('Enter target user id: \n')
+            send_unfollow(sock, target_user_id, app_state)
         elif cmd == "check_followers":
-            print(app_state.followers)
+            print() # Adding newline for a more seperated cli logs
+            pprint(app_state.followers,)
+            print()
         elif cmd == "check_peers":
-            print(app_state.peers)
+            print()
+            pprint(app_state.peers)
+            print()
         elif cmd == "check_following":
-            print(app_state.following)
+            print()
+            pprint( app_state.following)
+            print()
 
 
 if __name__ == "__main__":
