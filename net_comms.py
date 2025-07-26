@@ -70,16 +70,18 @@ def listener_loop(sock: socket, app_state: AppState):
         data, addr = sock.recvfrom(65535)
         try:
             raw_msg = data.decode('utf-8')
+            
             msg = parse_message(raw_msg)
             msg_type = msg.get("TYPE")
 
             if msg_type == "PING":
                 continue 
+           
             
           
-            if (msg.get("USER_ID") == app_state.user_id or msg.get("FROM") == app_state.user_id):
-                continue  # Message is from self
-            elif msg_type == "PROFILE":
+            #if (msg.get("USER_ID") == app_state.user_id or msg.get("FROM") == app_state.user_id):
+            #    continue  # Message is from self
+            if msg_type == "PROFILE":
                 handle_profile(msg, addr[0], app_state)
             elif msg_type == "FOLLOW":
                 handle_follow_message(msg, app_state)
@@ -91,7 +93,7 @@ def listener_loop(sock: socket, app_state: AppState):
             elif msg_type == "TICTACTOE_MOVE":
                 handle_move(msg, app_state, sock, addr[0])
             elif msg_type == "TICTACTOE_RESULT":
-                handle_result(msg, app_state, addr[0])
+                handle_result(msg, app_state, sock, addr[0])
             elif msg_type == "ACK":
                 handle_ack(msg, app_state)
             else:
