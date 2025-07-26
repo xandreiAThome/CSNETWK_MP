@@ -76,6 +76,7 @@ def listener_loop(sock: socket, app_state: AppState):
             # discovery
               # only send profile if interval has passed, pings just trigger the check
             if msg_type == "PING":
+                print("PING")
                 now = time.time()
                 if (now - last_profile_time) > min_profile_interval:
                     send_profile(sock, "BROADCASTING", app_state)
@@ -84,8 +85,7 @@ def listener_loop(sock: socket, app_state: AppState):
             elif msg_type == "PROFILE":
                 handle_profile(msg, addr[0], app_state)
                 continue
-            elif msg_type == "ACK":
-                handle_ack(msg, app_state, addr[0])
+            
 
             # check for core feature msgs that the ip hasnt been spoofed
             # I am crying from the fact that the format of msgs are inconsistent
