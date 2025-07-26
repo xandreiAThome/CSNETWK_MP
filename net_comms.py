@@ -4,6 +4,7 @@ import time
 from utils import *
 import utils.globals as globals
 from follow import handle_follow_message, handle_unfollow_message
+from tictactoe import handle_invite, handle_move
 
 
 def get_local_ip():
@@ -51,16 +52,19 @@ def handle_profile(msg: dict, addr:str, app_state: AppState):
         }
 
 def broadcast_loop(sock: socket, app_state: AppState):
-    send_profile(sock, "BROADCASTING", app_state)
     # send profile every 3rd time, else send ping
+    count = 0
     while True:
-        send_ping(sock, app_state)
+        if count % 3 == 0:
+            send_profile(sock,'BROADCASTING', app_state)
+            count = 0
+        else:
+            send_ping(sock, app_state)
+        count += 1
         time.sleep(globals.BROADCAST_INTERVAL)
 
 def listener_loop(sock: socket, app_state: AppState):
     print(f"[LISTENING] UDP port {globals.PORT} on {app_state.local_ip}...\n")
-    min_profile_interval = 5  # seconds
-    last_profile_time = 0
 
     while True:
         data, addr = sock.recvfrom(65535)
@@ -69,42 +73,68 @@ def listener_loop(sock: socket, app_state: AppState):
             msg = parse_message(raw_msg)
             msg_type = msg.get("TYPE")
 
-            if msg.get("USER_ID") == app_state.user_id:
-                continue  # Message is from self
-
-            # discovery
-              # only send profile if interval has passed, pings just trigger the check
             if msg_type == "PING":
-                now = time.time()
-                if (now - last_profile_time) > min_profile_interval:
-                    send_profile(sock, "BROADCASTING", app_state)
-                    last_profile_time = now
-                continue
+                continue 
+            
+          
+            if (msg.get("USER_ID") == app_state.user_id or msg.get("FROM") == app_state.user_id):
+                continue  # Message is from self
             elif msg_type == "PROFILE":
                 handle_profile(msg, addr[0], app_state)
-                continue
-
-            # check for core feature msgs that the ip hasnt been spoofed
-            # I am crying from the fact that the format of msgs are inconsistent
-            # some only have user_id and others have FROM which basically is the user_id of the sender
-            # so I need to seperate the if else of PING AND PROFILE from the rest of the msg_types
-            # REMINDER that POST also has user_id instead of FROM :-(
-            print(msg_type)
-            username, user_ip = msg.get("FROM").split('@')
-            if user_ip != addr[0]:
-                continue
-
-            if msg.get("FROM") == app_state.user_id:
-                continue  # Message is from self again, curse the msg formats
-
-            # core features
-            if msg_type == "FOLLOW":
+            elif msg_type == "FOLLOW":
                 handle_follow_message(msg, app_state)
             elif msg_type == "UNFOLLOW":
                 handle_unfollow_message(msg, app_state)
+            elif msg_type == "TICTACTOE_INVITE":
+                print("[DEBUG] Received INVITE")
+                handle_invite(msg, app_state, sock, addr[0])
+            elif msg_type == "TICTACTOE_MOVE":
+                handle_move(msg, app_state, sock, addr[0])
+            elif msg_type == "ACK":
+                msg_id = msg.get("MESSAGE_ID")
+                with app_state.lock:
+                    if msg_id in app_state.pending_acks:
+                        del app_state.pending_acks[msg_id]
+                        print(f"[ACK RECEIVED] {msg_id}")
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:
             print("[ERROR] Could not parse message:", e)
 
+def ack_resend_loop(sock, app_state):
+    while True:
+        time.sleep(1)
+        with app_state.lock:
+            for msg_id, entry in list(app_state.pending_acks.items()):
+                if time.time() - entry["timestamp"] > 2:
+                    if entry["retries"] >= 3:
+                        print(f"[ACK] Gave up on {msg_id}")
+                        del app_state.pending_acks[msg_id]
+                    else:
+                        entry["retries"] += 1
+                        entry["timestamp"] = time.time()
+                        sock.sendto(build_message(entry["message"]).encode("utf-8"), (entry["destination"], globals.PORT))
+                        print(f"[RESEND] Retried {msg_id}")
 
+# Send message requiring ACK
+def send_with_ack(sock, message: dict, app_state: AppState, ip: str):
+    ackable = {"TICTACTOE_INVITE", "TICTACTOE_MOVE"} # Add more message types here
+    sock.sendto(build_message(message).encode("utf-8"), (ip, globals.PORT))
+
+    if message["TYPE"] in ackable:
+        with app_state.lock:
+            app_state.pending_acks[message["MESSAGE_ID"]] = {
+                "message": message,
+                "destination": ip,
+                "retries": 0,
+                "timestamp": time.time()
+            }
+
+# Send back ACK
+def send_ack(sock, msg_id, target_ip):
+    ack = {
+        "TYPE": "ACK",
+        "MESSAGE_ID": msg_id,
+        "STATUS": "RECEIVED"
+    }
+    sock.sendto(build_message(ack).encode("utf-8"), (target_ip, globals.PORT))
