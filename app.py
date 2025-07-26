@@ -48,6 +48,9 @@ def main(display_name, user_name, avatar_source_file=None):
         cmd = input("Enter command: \n")
         if cmd == "exit":
             break
+        elif cmd == "verbose":          
+            globals.verbose = not globals.verbose
+            print(f"Verbose mode {'enabled' if globals.verbose else 'disabled'}")
         elif cmd == "follow":
             target_user_id = input('Enter target user id: \n')
             send_follow(sock, target_user_id, app_state)

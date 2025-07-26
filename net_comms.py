@@ -4,7 +4,7 @@ import time
 from utils import *
 import utils.globals as globals
 from follow import handle_follow_message, handle_unfollow_message
-from tictactoe import handle_invite, handle_move
+from tictactoe import handle_invite, handle_move, handle_result
 
 
 def get_local_ip():
@@ -90,14 +90,10 @@ def listener_loop(sock: socket, app_state: AppState):
                 handle_invite(msg, app_state, sock, addr[0])
             elif msg_type == "TICTACTOE_MOVE":
                 handle_move(msg, app_state, sock, addr[0])
+            elif msg_type == "TICTACTOE_RESULT":
+                handle_result(msg, app_state, addr[0])
             elif msg_type == "ACK":
-                msg_id = msg.get("MESSAGE_ID")
-                print("ACK Received: ", msg)
-                print("Pending Acks: ", app_state.pending_acks)
-                with app_state.lock:
-                    if msg_id in app_state.pending_acks:
-                        del app_state.pending_acks[msg_id]
-                        print(f"[ACK RECEIVED] {msg_id}")
+                handle_ack(msg, app_state)
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:
@@ -110,17 +106,27 @@ def ack_resend_loop(sock, app_state):
             for msg_id, entry in list(app_state.pending_acks.items()):
                 if time.time() - entry["timestamp"] > 2:
                     if entry["retries"] >= 3:
+                        if globals.verbose:
+                            print(f"\n[DROP !]")
+                            print(f"MessageID    : {msg_id}")
+                            print(f"Reason       : Max retries reached\n")
                         print(f"[ACK] Gave up on {msg_id}")
                         del app_state.pending_acks[msg_id]
                     else:
                         entry["retries"] += 1
                         entry["timestamp"] = time.time()
                         sock.sendto(build_message(entry["message"]).encode("utf-8"), (entry["destination"], globals.PORT))
+                        if globals.verbose:
+                            print(f"\n[RESEND !]")
+                            print(f"MessageID    : {msg_id}")
+                            print(f"Retry Count  : {entry['retries']}")
+                            print(f"Destination  : {entry['destination']}\n")
                         print(f"[RESEND] Retried {msg_id}")
+
 
 # Send message requiring ACK
 def send_with_ack(sock, message: dict, app_state: AppState, ip: str):
-    ackable = {"TICTACTOE_INVITE", "TICTACTOE_MOVE"} # Add more message types here
+    ackable = {"TICTACTOE_INVITE", "TICTACTOE_MOVE", "TICTACTOE_RESULT"} # Add more message types here
     sock.sendto(build_message(message).encode("utf-8"), (ip, globals.PORT))
 
     if message["TYPE"] in ackable:
@@ -140,3 +146,25 @@ def send_ack(sock, msg_id, target_ip):
         "STATUS": "RECEIVED"
     }
     sock.sendto(build_message(ack).encode("utf-8"), (target_ip, globals.PORT))
+
+    if globals.verbose:
+        print(f"\n[SEND >]")
+        print(f"Message Type : ACK")
+        print(f"Timestamp    : {time.time()}")
+        print(f"To           : {target_ip}")
+        print(f"MessageID    : {msg_id}")
+        print(f"Status       : RECEIVED\n")
+
+def handle_ack(msg, app_state):
+    msg_id = msg.get("MESSAGE_ID")
+    with app_state.lock:
+        if msg_id in app_state.pending_acks:
+            del app_state.pending_acks[msg_id]
+            print(f"[ACK RECEIVED] {msg_id}")
+
+            if globals.verbose:
+                print(f"\n[RECV <]")
+                print(f"Message Type : ACK")
+                print(f"MessageID    : {msg_id}")
+                print(f"Status       : {msg.get('STATUS', 'RECEIVED')}\n")
+            
