@@ -1,11 +1,13 @@
 import socket
 import sys
 import ipaddress
-from net_comms import get_local_ip, broadcast_loop, listener_loop
+from net_comms import get_local_ip, broadcast_loop, listener_loop, ack_resend_loop
 from utils import AppState, globals
 import threading
 from follow import send_follow, send_unfollow
 from pprint import pprint
+from tictactoe import move, send_invite, print_board, send_result
+import random
 
 # TODO message queue to wait for acks
 # proccess action after getting ack
@@ -29,7 +31,7 @@ def main(display_name, user_name, avatar_source_file=None):
        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow rebinding
        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcast
-       sock.bind(('', globals.PORT))  # Use PORT constant
+       sock.bind((app_state.local_ip, globals.PORT))  # Use PORT constant
        print(f"[INFO] Socket bound to port {globals.PORT}")
        print(f"[INFO] Local IP: {app_state.local_ip}")
        print(f"[INFO] user_id: {app_state.user_id}")
@@ -40,11 +42,15 @@ def main(display_name, user_name, avatar_source_file=None):
 
    threading.Thread(target=broadcast_loop, args=(sock, app_state), daemon=True).start()
    threading.Thread(target=listener_loop, args=(sock, app_state), daemon=True).start()
+   threading.Thread(target=ack_resend_loop, args=(sock, app_state), daemon=True).start()
 
    while True:
         cmd = input("Enter command: \n")
         if cmd == "exit":
             break
+        elif cmd == "verbose":          
+            globals.verbose = not globals.verbose
+            print(f"Verbose mode {'enabled' if globals.verbose else 'disabled'}")
         elif cmd == "follow":
             target_user_id = input('Enter target user id: \n')
             send_follow(sock, target_user_id, app_state)
@@ -63,6 +69,80 @@ def main(display_name, user_name, avatar_source_file=None):
             print()
             pprint( app_state.following)
             print()
+        elif cmd == "invite_ttt":
+            target_user_id = input("Enter target user ID:\n")
+            game_id = f"g{random.randint(0, 255)}"
+            symbol = "X"  
+            send_invite(sock, target_user_id, app_state, game_id, symbol)
+        elif cmd == "move":
+            with app_state.lock:
+                games = list(app_state.active_games.items())
+
+            if not games:
+                print("No active games.")
+                continue
+
+            print("\n[ACTIVE GAMES]")
+            for i, (g_id, game) in enumerate(games):
+                print(f"{i}) Game {g_id} vs {game['opponent']}")
+
+            try:
+                idx = int(input("Choose game #: "))
+                game_id, game = games[idx]
+            except (ValueError, IndexError):
+                print("Invalid game #.")
+                continue
+
+            if not game["my_turn"]:
+                print("[INFO] Not your turn.")
+                continue
+
+            while True:
+                try:
+                    print_board(game["board"])
+                    pos = int(input("Enter position (0-8): "))
+                    if not (0 <= pos <= 8):
+                        print("Out of range.")
+                        continue
+                    if game["board"][pos] is not None:
+                        print("Cell occupied.")
+                        continue
+                    break
+                except ValueError:
+                    print("Invalid input.")
+
+            move(sock, game["opponent"], app_state, game_id, pos)
+            print_board(game["board"])
+        elif cmd == "forfeit":
+            with app_state.lock:
+                games = list(app_state.active_games.items())
+
+            if not games:
+                print("No active games.")
+                continue
+
+            print("\n[ACTIVE GAMES]")
+            for i, (g_id, game) in enumerate(games):
+                print(f"{i}) Game {g_id} vs {game['opponent']}")
+
+            try:
+                idx = int(input("Choose game #: "))
+                game_id, game = games[idx]
+            except (ValueError, IndexError):
+                print("Invalid game #.")
+                continue
+
+            choice = input(f"Forfeit {game_id}?\n1. Yes\n2. No\nChoice: ").strip()
+            if choice != "1":
+                print("Cancelled.")
+                continue
+
+            opponent = game["opponent"]
+            print(f"[FORFEIT] You forfeited game {game_id}")
+            send_result(sock, app_state, opponent, game_id, "FORFEIT")
+
+            with app_state.lock:
+                del app_state.active_games[game_id]
 
 
 if __name__ == "__main__":
@@ -76,4 +156,3 @@ if __name__ == "__main__":
     user_name = sys.argv[2]
     avatar_source_file = sys.argv[3] if len(sys.argv) == 4 else None
     main(display_name, user_name, avatar_source_file)
-    
