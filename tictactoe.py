@@ -150,6 +150,7 @@ def move(sock: socket, target_user_id: str, app_state: AppState, game_id, positi
 
         result = check_game_over(game["board"])
         if result:
+            print_board(board)
             if result == "DRAW":
                 print("\n[RESULT] It's a draw!")
                 game["status"] = "FINISHED"
@@ -229,14 +230,13 @@ def handle_move(msg, app_state, sock, sender_ip):
 
     result = check_game_over(game["board"])
     if result:
+        print_board(game["board"])
         if result == "DRAW":
             print("\n[RESULT] It's a draw!")
             game["status"] = "FINISHED"
-            send_result(sock, app_state, sender, game_id, "DRAW")
         elif result[0] == "WIN":
             print(f"\n[RESULT] You lose! Line: {result[1]}")
             game["status"] = "FINISHED"
-            send_result(sock, app_state, sender, game_id, "LOSS", result[1])
         del app_state.active_games[game_id]
     
 
@@ -322,9 +322,12 @@ def handle_result(msg, app_state: AppState, sock, sender_ip,):
 
     net_comms.send_ack(sock, message_id, sender_ip)
 
-    print(f"\n[RESULT] Game {game_id} ended. Result: {result}")
-    if winning_line:
-        print(f"Winning Line: {winning_line}")
+    if result == "FORFEIT":
+        print(f"\n[RESULT] {msg['FROM']} forfeited.")
+    else:
+        print(f"\n[RESULT] Game {game_id} ended. Result: {msg['FROM']} - {result}")
+        if winning_line:
+            print(f"Winning Line: {winning_line}")
 
     if globals.verbose:
         print(f"\n[RECV <]")

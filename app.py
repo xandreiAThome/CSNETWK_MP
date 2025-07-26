@@ -6,7 +6,7 @@ from utils import AppState, globals
 import threading
 from follow import send_follow, send_unfollow
 from pprint import pprint
-from tictactoe import move, send_invite, print_board
+from tictactoe import move, send_invite, print_board, send_result
 import random
 
 # TODO message queue to wait for acks
@@ -113,6 +113,36 @@ def main(display_name, user_name, avatar_source_file=None):
 
             move(sock, game["opponent"], app_state, game_id, pos)
             print_board(game["board"])
+        elif cmd == "forfeit":
+            with app_state.lock:
+                games = list(app_state.active_games.items())
+
+            if not games:
+                print("No active games.")
+                continue
+
+            print("\n[ACTIVE GAMES]")
+            for i, (g_id, game) in enumerate(games):
+                print(f"{i}) Game {g_id} vs {game['opponent']}")
+
+            try:
+                idx = int(input("Choose game #: "))
+                game_id, game = games[idx]
+            except (ValueError, IndexError):
+                print("Invalid game #.")
+                continue
+
+            choice = input(f"Forfeit {game_id}?\n1. Yes\n2. No\nChoice: ").strip()
+            if choice != "1":
+                print("Cancelled.")
+                continue
+
+            opponent = game["opponent"]
+            print(f"[FORFEIT] You forfeited game {game_id}")
+            send_result(sock, app_state, opponent, game_id, "FORFEIT")
+
+            with app_state.lock:
+                del app_state.active_games[game_id]
 
 
 if __name__ == "__main__":
