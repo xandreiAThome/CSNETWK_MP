@@ -5,6 +5,8 @@ from net_comms import get_local_ip, broadcast_loop, listener_loop
 from utils import AppState, globals
 import threading
 from follow import send_follow, send_unfollow
+from dm import send_dm
+from post import send_post
 from pprint import pprint
 
 # TODO message queue to wait for acks
@@ -53,7 +55,7 @@ def main(display_name, user_name, avatar_source_file=None):
             send_unfollow(sock, target_user_id, app_state)
         elif cmd == "check_followers":
             print() # Adding newline for a more seperated cli logs
-            pprint(app_state.followers,)
+            print(app_state.followers,)
             print()
         elif cmd == "check_peers":
             print()
@@ -63,6 +65,13 @@ def main(display_name, user_name, avatar_source_file=None):
             print()
             pprint( app_state.following)
             print()
+        elif cmd == "post":
+            post_content = input('Enter post content: \n')
+            send_post(sock, post_content, app_state)
+        elif cmd == "dm":
+            target_user = input('Enter target user id: \n')
+            dm_content = input('Enter message content: \n')
+            send_dm(sock, dm_content, target_user, app_state)
 
 
 if __name__ == "__main__":

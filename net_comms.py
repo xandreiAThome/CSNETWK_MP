@@ -4,6 +4,8 @@ import time
 from utils import *
 import utils.globals as globals
 from follow import handle_follow_message, handle_unfollow_message
+from dm import handle_dm
+from post import handle_post_message
 
 
 def get_local_ip():
@@ -84,24 +86,39 @@ def listener_loop(sock: socket, app_state: AppState):
                 handle_profile(msg, addr[0], app_state)
                 continue
 
+            # handle cases where the message uses USER_ID instead of FROM
+            # failure to handle such cases used to result in errors trying to parse Nonetype
+            msg_from = msg.get("FROM")
+            msg_user_id = msg.get("USER_ID")
+
+            if not (msg_from is None):
+                username, user_ip = msg.get("FROM").split('@')
+            elif not (msg_user_id is None):
+                username, user_ip = msg.get("USER_ID").split('@')
+
             # check for core feature msgs that the ip hasnt been spoofed
             # I am crying from the fact that the format of msgs are inconsistent
             # some only have user_id and others have FROM which basically is the user_id of the sender
             # so I need to seperate the if else of PING AND PROFILE from the rest of the msg_types
             # REMINDER that POST also has user_id instead of FROM :-(
-            print(msg_type)
-            username, user_ip = msg.get("FROM").split('@')
             if user_ip != addr[0]:
                 continue
 
             if msg.get("FROM") == app_state.user_id:
                 continue  # Message is from self again, curse the msg formats
 
+            print(msg_type)
+
             # core features
             if msg_type == "FOLLOW":
                 handle_follow_message(msg, app_state)
             elif msg_type == "UNFOLLOW":
                 handle_unfollow_message(msg, app_state)
+            elif msg_type == "POST":
+                handle_post_message(msg, app_state)
+                continue
+            elif msg_type == "DM":
+                handle_dm(msg, app_state)
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:
