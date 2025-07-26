@@ -92,6 +92,8 @@ def listener_loop(sock: socket, app_state: AppState):
                 handle_move(msg, app_state, sock, addr[0])
             elif msg_type == "ACK":
                 msg_id = msg.get("MESSAGE_ID")
+                print("ACK Received: ", msg)
+                print("Pending Acks: ", app_state.pending_acks)
                 with app_state.lock:
                     if msg_id in app_state.pending_acks:
                         del app_state.pending_acks[msg_id]

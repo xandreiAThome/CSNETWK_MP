@@ -19,7 +19,7 @@ def send_invite(sock:socket, target_user_id:str, app_state: AppState, game_id, s
             "FROM": app_state.user_id,
             "TO": target_user_id,
             "GAMEID": game_id,
-            "MESSAGE_ID": uuid.uuid4(),     
+            "MESSAGE_ID": str(uuid.uuid4()),     
             "SYMBOL": symbol,   
             "TIMESTAMP": timestamp_now,
             "TOKEN": f'{app_state.user_id}|{timestamp_now + globals.TTL}|game'
@@ -50,6 +50,7 @@ def handle_invite(msg, app_state, sock, sender_ip):
     with app_state.lock:
         # Ignore repeated invites
         if game_id in app_state.active_games:
+            print("balls")
             return  
         
         # Store active game
@@ -62,7 +63,7 @@ def handle_invite(msg, app_state, sock, sender_ip):
             "status": "IN_PROGRESS"
         }
 
-    
+    print("Ballsy")
     net_comms.send_ack(sock, msg["MESSAGE_ID"], sender_ip)
     print(f"\n[INVITE] {sender} invited you to play Tic Tac Toe (Game ID: {game_id})")
 
@@ -139,7 +140,7 @@ def handle_move(msg, app_state, sock, sender_ip):
     with app_state.lock:
         # Check if gameID and turn combination already exists
         if key in app_state.received_moves:
-            net_comms.send_ack(sock, sender, message_id, sender_ip) # Send back ack
+            net_comms.send_ack(sock, message_id, sender_ip) # Send back ack
             return  
         game = app_state.active_games.get(game_id)
 
@@ -160,7 +161,7 @@ def handle_move(msg, app_state, sock, sender_ip):
         # Check for invalid move
         if pos < 0 or pos > 8 or game["board"][pos] is not None:
             # Invalid move (e.g., cell taken), silently ignore
-            net_comms.send_ack(sock, sender, message_id, sender_ip)
+            net_comms.send_ack(sock, message_id, sender_ip)
             return
 
         # Accept the move if it's valid
@@ -169,7 +170,7 @@ def handle_move(msg, app_state, sock, sender_ip):
         game["my_turn"] = True
         app_state.received_moves.add(key)
 
-    net_comms.send_ack(sock, sender, message_id, sender_ip)
+    net_comms.send_ack(sock, message_id, sender_ip)
 
 
     print(f"\n[MOVE] {sender} played {symbol} at {pos}")
