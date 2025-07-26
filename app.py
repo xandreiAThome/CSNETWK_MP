@@ -2,22 +2,28 @@ import socket
 import sys
 import ipaddress
 from net_comms import get_local_ip, broadcast_loop, listener_loop
-from utils import *
+from utils import AppState, globals
 import threading
-import globals
+from follow import send_follow, send_unfollow
+from pprint import pprint
 
-# user object (stored in peers and following dicts) has the following fields
-# TODO add the avatar fields
-# "ip", "display_name, "status","last_seen"
+# TODO message queue to wait for acks
+# proccess action after getting ack
+# retransmission with max attempts if msg not ack 
+
+# Persistent Live variables in app_state class
+# App flow for now is
+# - 2 seperate threads for broadcasting profile and listening to LSP messages
+# - Main loop in app.py for executing commands
 
 
 def main(display_name, user_name, avatar_source_file=None):
-   peers = {}
-   following = {}
-   globals.local_ip = get_local_ip()
-   globals.user_id = f'{user_name}@{globals.local_ip}'
-   globals.broadcast_ip = str(ipaddress.IPv4Network(globals.local_ip + '/' + globals.MASK, False).broadcast_address)
-   globals.display_name = display_name
+   app_state = AppState()
+   app_state.local_ip = get_local_ip()
+   app_state.broadcast_ip = str(ipaddress.IPv4Network(app_state.local_ip + '/' + globals.MASK, False).broadcast_address)
+
+   app_state.user_id = f'{user_name}@{app_state.local_ip}'
+   app_state.display_name = display_name
 
    try:
        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -25,20 +31,39 @@ def main(display_name, user_name, avatar_source_file=None):
        sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcast
        sock.bind(('', globals.PORT))  # Use PORT constant
        print(f"[INFO] Socket bound to port {globals.PORT}")
-       print(f"[INFO] Local IP: {globals.local_ip}")
-       print(f"[INFO] user_id: {globals.user_id}")
-       print(f"[INFO] Broadcasting to: {globals.broadcast_ip}")
+       print(f"[INFO] Local IP: {app_state.local_ip}")
+       print(f"[INFO] user_id: {app_state.user_id}")
+       print(f"[INFO] Broadcasting to: {app_state.broadcast_ip}")
    except Exception as e:
        print(f"[ERROR] Failed to create/bind socket: {e}")
        return
 
-   threading.Thread(target=broadcast_loop, args=(sock,), daemon=True).start()
-   threading.Thread(target=listener_loop, args=(sock, peers), daemon=True).start()
+   threading.Thread(target=broadcast_loop, args=(sock, app_state), daemon=True).start()
+   threading.Thread(target=listener_loop, args=(sock, app_state), daemon=True).start()
 
    while True:
-        cmd = input("Enter command: ")
+        cmd = input("Enter command: \n")
         if cmd == "exit":
             break
+        elif cmd == "follow":
+            target_user_id = input('Enter target user id: \n')
+            send_follow(sock, target_user_id, app_state)
+        elif cmd == "unfollow":
+            target_user_id = input('Enter target user id: \n')
+            send_unfollow(sock, target_user_id, app_state)
+        elif cmd == "check_followers":
+            print() # Adding newline for a more seperated cli logs
+            pprint(app_state.followers,)
+            print()
+        elif cmd == "check_peers":
+            print()
+            pprint(app_state.peers)
+            print()
+        elif cmd == "check_following":
+            print()
+            pprint( app_state.following)
+            print()
+
 
 if __name__ == "__main__":
     if len(sys.argv) < 3 or len(sys.argv) > 4:

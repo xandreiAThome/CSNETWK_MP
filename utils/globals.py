@@ -1,0 +1,6 @@
+# globals.py
+PORT = 50999
+BROADCAST_INTERVAL = 2
+MASK = '255.255.255.0'
+TTL = 60
+

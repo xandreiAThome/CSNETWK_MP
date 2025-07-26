@@ -2,7 +2,8 @@ from datetime import datetime, timezone
 import socket
 import time
 from utils import *
-import globals
+import utils.globals as globals
+from follow import handle_follow_message, handle_unfollow_message
 
 
 def get_local_ip():
@@ -15,38 +16,51 @@ def get_local_ip():
     except Exception:
         return "127.0.0.1"
     
-def send_ping(sock: socket):
+def send_ping(sock: socket, app_state: AppState):
     message = {
         "TYPE": "PING",
-        "USER_ID": globals.user_id
+        "USER_ID": app_state.user_id
     }
 
-    sock.sendto(build_message(message).encode('utf-8'), (globals.broadcast_ip, globals.PORT))
+    sock.sendto(build_message(message).encode('utf-8'), (app_state.broadcast_ip, globals.PORT))
 
-def send_profile(sock: socket, status: str):
+def send_profile(sock: socket, status: str, app_state: AppState):
     message = {
         "TYPE": "PROFILE",
-        "USER_ID": globals.user_id,
-        "DISPLAY_NAME": globals.display_name,
+        "USER_ID": app_state.user_id,
+        "DISPLAY_NAME": app_state.display_name,
         "STATUS": status,
     }
 
-    sock.sendto(build_message(message).encode('utf-8'), (globals.broadcast_ip, globals.PORT))
+    sock.sendto(build_message(message).encode('utf-8'), (app_state.broadcast_ip, globals.PORT))
+    
+def handle_profile(msg: dict, addr:str, app_state: AppState):
+    display_name = msg.get("DISPLAY_NAME", "Unknown")
+    user_id = msg.get("USER_ID")
+    status = msg.get("STATUS", "")
 
-def broadcast_loop(sock: socket):
+    if user_id not in app_state.peers:
+        print(f"\n[PROFILE] (Detected User) {display_name}: {status}", end='\n\n')
+    # Avatar is optional — we ignore AVATAR_* if unsupported
+    with app_state.lock:
+        app_state.peers[user_id] = {
+            "ip": addr,
+            "display_name": display_name,
+            "status": status,
+            "last_seen": datetime.now(timezone.utc).timestamp()
+        }
+
+def broadcast_loop(sock: socket, app_state: AppState):
+    send_profile(sock, "BROADCASTING", app_state)
     # send profile every 3rd time, else send ping
-    count = 0
     while True:
-        if count % 3 == 0:
-            send_profile(sock,'BROADCASTING')
-            count = 0
-        else:
-            send_ping(sock)
-        count += 1
+        send_ping(sock, app_state)
         time.sleep(globals.BROADCAST_INTERVAL)
 
-def listener_loop(sock: socket, peers: dict):
-    print(f"[LISTENING] UDP port {globals.PORT} on {get_local_ip()}...\n")
+def listener_loop(sock: socket, app_state: AppState):
+    print(f"[LISTENING] UDP port {globals.PORT} on {app_state.local_ip}...\n")
+    min_profile_interval = 5  # seconds
+    last_profile_time = 0
 
     while True:
         data, addr = sock.recvfrom(65535)
@@ -55,28 +69,39 @@ def listener_loop(sock: socket, peers: dict):
             msg = parse_message(raw_msg)
             msg_type = msg.get("TYPE")
 
-            if msg_type == "PING":
-                continue 
-
-            if msg.get("USER_ID") == globals.user_id:
+            if msg.get("USER_ID") == app_state.user_id:
                 continue  # Message is from self
 
+            # discovery
+              # only send profile if interval has passed, pings just trigger the check
+            if msg_type == "PING":
+                now = time.time()
+                if (now - last_profile_time) > min_profile_interval:
+                    send_profile(sock, "BROADCASTING", app_state)
+                    last_profile_time = now
+                continue
             elif msg_type == "PROFILE":
-                display_name = msg.get("DISPLAY_NAME", "Unknown")
-                user_id = msg.get("USER_ID")
-                status = msg.get("STATUS", "")
-                print(f"[PROFILE] {display_name}: {status}")
-                # Avatar is optional — we ignore AVATAR_* if unsupported
-                peers[user_id] = {
-                    "ip": addr[0],
-                    "display_name": display_name,
-                    "status": status,
-                    "last_seen": datetime.now(timezone.utc).timestamp()
-                }
-                print(peers)
-            elif msg_type == "FOLLOW":
-                display_name = msg.get("DISPLAY_NAME", "Unknown")
-                print(f"[FOLLOW] {display_name} followed you")
+                handle_profile(msg, addr[0], app_state)
+                continue
+
+            # check for core feature msgs that the ip hasnt been spoofed
+            # I am crying from the fact that the format of msgs are inconsistent
+            # some only have user_id and others have FROM which basically is the user_id of the sender
+            # so I need to seperate the if else of PING AND PROFILE from the rest of the msg_types
+            # REMINDER that POST also has user_id instead of FROM :-(
+            print(msg_type)
+            username, user_ip = msg.get("FROM").split('@')
+            if user_ip != addr[0]:
+                continue
+
+            if msg.get("FROM") == app_state.user_id:
+                continue  # Message is from self again, curse the msg formats
+
+            # core features
+            if msg_type == "FOLLOW":
+                handle_follow_message(msg, app_state)
+            elif msg_type == "UNFOLLOW":
+                handle_unfollow_message(msg, app_state)
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:
