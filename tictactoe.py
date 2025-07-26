@@ -36,6 +36,7 @@ def send_invite(sock:socket, target_user_id:str, app_state: AppState, game_id, s
                 "status": "WAITING"
             }
 
+        net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
         if globals.verbose:
             print(f"\n[SEND >]")
             print(f"Message Type: TICTACTOE_INVITE")
@@ -48,7 +49,6 @@ def send_invite(sock:socket, target_user_id:str, app_state: AppState, game_id, s
             print(f"Symbol   : {symbol}")
             print(f"Token    : {message['TOKEN']}\n")
 
-        net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
         print(f'\n[TICTACTOE] You invited {target_user["display_name"]} to play Tic Tac Toe (Game ID: {game_id})\n')
     except KeyError as e:
         print(f'\n[ERROR] invalid user_id | {e}', end='\n\n')
@@ -135,6 +135,9 @@ def move(sock: socket, target_user_id: str, app_state: AppState, game_id, positi
             "TOKEN": f'{app_state.user_id}|{timestamp_now + globals.TTL}|game'
         }
 
+        
+
+        net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
         if globals.verbose:
             print(f"\n[SEND >]")
             print(f"Message Type: TICTACTOE_MOVE")
@@ -149,7 +152,6 @@ def move(sock: socket, target_user_id: str, app_state: AppState, game_id, positi
             print(f"Turn      : {game['turn']}")
             print(f"Token     : {message['TOKEN']}\n")
 
-        net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
         print(f'\n[TICTACTOE] {game_id}: You moved to position {position}\n')
 
         result = check_game_over(game["board"])
@@ -297,6 +299,10 @@ def send_result(sock, app_state: AppState, target_user_id, game_id, result, winn
         if winning_line:
             message["WINNING_LINE"] = ",".join(str(i) for i in winning_line)
 
+        
+
+        net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
+
         if globals.verbose:
             print(f"\n[SEND >]")
             print(f"Message Type : TICTACTOE_RESULT")
@@ -312,8 +318,6 @@ def send_result(sock, app_state: AppState, target_user_id, game_id, result, winn
                 print(f"Winning Line : {winning_line}")
             print()
 
-        net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
-
     except KeyError as e:
         print(f"[ERROR] Can't send game result: {e}")
 
@@ -327,15 +331,6 @@ def handle_result(msg, app_state: AppState, sock, sender_ip,):
     with app_state.lock:
         if game_id in app_state.active_games:
             del app_state.active_games[game_id]
-
-    net_comms.send_ack(sock, message_id, sender_ip, app_state)
-
-    if result == "FORFEIT":
-        print(f"\n[RESULT] {msg['FROM']} forfeited.")
-    else:
-        print(f"\n[RESULT] Game {game_id} ended. Result: {msg['FROM']} - {result}")
-        if winning_line:
-            print(f"Winning Line: {winning_line}")
 
     if globals.verbose:
         print(f"\n[RECV <]")
@@ -351,3 +346,14 @@ def handle_result(msg, app_state: AppState, sock, sender_ip,):
         if winning_line:
             print(f"Winning Line : {winning_line}")
         print()
+        
+    net_comms.send_ack(sock, message_id, sender_ip, app_state)
+
+    if result == "FORFEIT":
+        print(f"\n[RESULT] {msg['FROM']} forfeited.")
+    else:
+        print(f"\n[RESULT] Game {game_id} ended. Result: {msg['FROM']} - {result}")
+        if winning_line:
+            print(f"Winning Line: {winning_line}")
+
+    
