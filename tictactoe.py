@@ -346,11 +346,11 @@ def handle_result(msg, app_state: AppState, sock, sender_ip,):
         if winning_line:
             print(f"Winning Line : {winning_line}")
         print()
-        
+
     net_comms.send_ack(sock, message_id, sender_ip, app_state)
 
     if result == "FORFEIT":
-        print(f"\n[RESULT] {msg['FROM']} forfeited.")
+        print(f"\n[RESULT] {game_id}: {msg['FROM']} forfeited.")
     else:
         print(f"\n[RESULT] Game {game_id} ended. Result: {msg['FROM']} - {result}")
         if winning_line:
