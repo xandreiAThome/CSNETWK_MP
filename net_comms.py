@@ -84,6 +84,9 @@ def listener_loop(sock: socket, app_state: AppState):
             elif msg_type == "PROFILE":
                 handle_profile(msg, addr[0], app_state)
                 continue
+            elif msg_type == "ACK":
+                handle_ack(msg, app_state, addr[0])
+                continue
             
 
             # check for core feature msgs that the ip hasnt been spoofed
