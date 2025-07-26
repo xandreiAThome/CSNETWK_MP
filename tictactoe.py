@@ -40,6 +40,7 @@ def send_invite(sock:socket, target_user_id:str, app_state: AppState, game_id, s
             print(f"\n[SEND >]")
             print(f"Message Type: TICTACTOE_INVITE")
             print(f"Timestamp: {timestamp_now}")
+            print(f"From IP  : {app_state.user_id.split('@')[1]}")
             print(f"From     : {app_state.user_id}")
             print(f"To       : {target_user_id}")
             print(f"Game ID  : {game_id}")
@@ -61,6 +62,8 @@ def handle_invite(msg, app_state, sock, sender_ip):
     if globals.verbose:
         print(f"\n[RECV <]")
         print(f"Message Type : TICTACTOE_INVITE")
+        print(f"Timestamp    : {datetime.now(timezone.utc).timestamp()}")
+        print(f"From IP      : {sender_ip}")
         print(f"From         : {msg['FROM']}")
         print(f"To           : {msg['TO']}")
         print(f"Game ID      : {msg['GAMEID']}")
@@ -86,7 +89,7 @@ def handle_invite(msg, app_state, sock, sender_ip):
         }
 
     
-    net_comms.send_ack(sock, msg["MESSAGE_ID"], sender_ip)
+    net_comms.send_ack(sock, msg["MESSAGE_ID"], sender_ip, app_state)
     
     print(f"\n[INVITE] {sender} invited you to play Tic Tac Toe (Game ID: {game_id})")
 
@@ -136,6 +139,7 @@ def move(sock: socket, target_user_id: str, app_state: AppState, game_id, positi
             print(f"\n[SEND >]")
             print(f"Message Type: TICTACTOE_MOVE")
             print(f"Timestamp : {timestamp_now}")
+            print(f"From IP   : {app_state.user_id.split('@')[1]}")
             print(f"From      : {app_state.user_id}")
             print(f"To        : {target_user_id}")
             print(f"Game ID   : {game_id}")
@@ -146,7 +150,7 @@ def move(sock: socket, target_user_id: str, app_state: AppState, game_id, positi
             print(f"Token     : {message['TOKEN']}\n")
 
         net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
-        print(f'\n[TICTACTOE] You moved to position {position}\n')
+        print(f'\n[TICTACTOE] {game_id}: You moved to position {position}\n')
 
         result = check_game_over(game["board"])
         if result:
@@ -179,6 +183,8 @@ def handle_move(msg, app_state, sock, sender_ip):
     if globals.verbose:
         print(f"\n[RECV <]")
         print(f"Message Type : TICTACTOE_MOVE")
+        print(f"Timestamp    : {datetime.now(timezone.utc).timestamp()}")
+        print(f"From IP      : {sender_ip}")
         print(f"From         : {msg['FROM']}")
         print(f"To           : {msg['TO']}")
         print(f"Game ID      : {msg['GAMEID']}")
@@ -191,7 +197,7 @@ def handle_move(msg, app_state, sock, sender_ip):
     with app_state.lock:
         # Check if gameID and turn combination already exists
         if key in app_state.received_moves:
-            net_comms.send_ack(sock, message_id, sender_ip) # Send back ack
+            net_comms.send_ack(sock, message_id, sender_ip, app_state) # Send back ack
             return  
         game = app_state.active_games.get(game_id)
 
@@ -212,7 +218,7 @@ def handle_move(msg, app_state, sock, sender_ip):
         # Check for invalid move
         if pos < 0 or pos > 8 or game["board"][pos] is not None:
             # Invalid move (e.g., cell taken), silently ignore
-            net_comms.send_ack(sock, message_id, sender_ip)
+            net_comms.send_ack(sock, message_id, sender_ip, app_state)
             return
 
         # Accept the move if it's valid
@@ -221,11 +227,11 @@ def handle_move(msg, app_state, sock, sender_ip):
         game["my_turn"] = True
         app_state.received_moves.add(key)
 
-    net_comms.send_ack(sock, message_id, sender_ip)
+    net_comms.send_ack(sock, message_id, sender_ip, app_state)
 
     
 
-    print(f"\n[MOVE] {sender} played {symbol} at {pos}")
+    print(f"\n[MOVE] {msg['GAMEID']}: {sender} played {symbol} at {pos}")
 
 
     result = check_game_over(game["board"])
@@ -237,6 +243,7 @@ def handle_move(msg, app_state, sock, sender_ip):
         elif result[0] == "WIN":
             print(f"\n[RESULT] You lose! Line: {result[1]}")
             game["status"] = "FINISHED"
+            send_result(sock, app_state, sender, game_id, "LOSS", result[1])
         del app_state.active_games[game_id]
     
 
@@ -294,6 +301,7 @@ def send_result(sock, app_state: AppState, target_user_id, game_id, result, winn
             print(f"\n[SEND >]")
             print(f"Message Type : TICTACTOE_RESULT")
             print(f"Timestamp    : {timestamp_now}")
+            print(f"From IP  : {app_state.user_id.split('@')[1]}")
             print(f"From         : {app_state.user_id}")
             print(f"To           : {target_user_id}")
             print(f"Game ID      : {game_id}")
@@ -320,7 +328,7 @@ def handle_result(msg, app_state: AppState, sock, sender_ip,):
         if game_id in app_state.active_games:
             del app_state.active_games[game_id]
 
-    net_comms.send_ack(sock, message_id, sender_ip)
+    net_comms.send_ack(sock, message_id, sender_ip, app_state)
 
     if result == "FORFEIT":
         print(f"\n[RESULT] {msg['FROM']} forfeited.")
@@ -332,6 +340,8 @@ def handle_result(msg, app_state: AppState, sock, sender_ip,):
     if globals.verbose:
         print(f"\n[RECV <]")
         print(f"Message Type : TICTACTOE_RESULT")
+        print(f"Timestamp    : {datetime.now(timezone.utc).timestamp()}")
+        print(f"From IP      : {sender_ip}")
         print(f"From         : {msg['FROM']}")
         print(f"To           : {msg['TO']}")
         print(f"Game ID      : {game_id}")

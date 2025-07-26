@@ -95,7 +95,7 @@ def listener_loop(sock: socket, app_state: AppState):
             elif msg_type == "TICTACTOE_RESULT":
                 handle_result(msg, app_state, sock, addr[0])
             elif msg_type == "ACK":
-                handle_ack(msg, app_state)
+                handle_ack(msg, app_state, addr[0])
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:
@@ -120,6 +120,10 @@ def ack_resend_loop(sock, app_state):
                         sock.sendto(build_message(entry["message"]).encode("utf-8"), (entry["destination"], globals.PORT))
                         if globals.verbose:
                             print(f"\n[RESEND !]")
+                            print(f"Message Type : ACK")
+                            print(f"Timestamp    : {datetime.now(timezone.utc).timestamp()}")
+                            print(f"From IP      : {app_state.user_id.split('@')[1]}")
+                            print(f"From         : {app_state.user_id}")
                             print(f"MessageID    : {msg_id}")
                             print(f"Retry Count  : {entry['retries']}")
                             print(f"Destination  : {entry['destination']}\n")
@@ -141,7 +145,7 @@ def send_with_ack(sock, message: dict, app_state: AppState, ip: str):
             }
 
 # Send back ACK
-def send_ack(sock, msg_id, target_ip):
+def send_ack(sock, msg_id, target_ip, app_state):
     ack = {
         "TYPE": "ACK",
         "MESSAGE_ID": msg_id,
@@ -153,11 +157,13 @@ def send_ack(sock, msg_id, target_ip):
         print(f"\n[SEND >]")
         print(f"Message Type : ACK")
         print(f"Timestamp    : {time.time()}")
+        print(f"From IP      : {app_state.user_id.split('@')[1]}")
+        print(f"From         : {app_state.user_id}")
         print(f"To           : {target_ip}")
         print(f"MessageID    : {msg_id}")
         print(f"Status       : RECEIVED\n")
 
-def handle_ack(msg, app_state):
+def handle_ack(msg, app_state, sender_ip):
     msg_id = msg.get("MESSAGE_ID")
     with app_state.lock:
         if msg_id in app_state.pending_acks:
@@ -167,6 +173,8 @@ def handle_ack(msg, app_state):
             if globals.verbose:
                 print(f"\n[RECV <]")
                 print(f"Message Type : ACK")
+                print(f"From IP      : {sender_ip}")
+                print(f"Timestamp    : {datetime.now(timezone.utc).timestamp()}")
                 print(f"MessageID    : {msg_id}")
                 print(f"Status       : {msg.get('STATUS', 'RECEIVED')}\n")
             
