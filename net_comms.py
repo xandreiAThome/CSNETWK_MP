@@ -52,15 +52,9 @@ def handle_profile(msg: dict, addr:str, app_state: AppState):
         }
 
 def broadcast_loop(sock: socket, app_state: AppState):
-    # send profile every 3rd time, else send ping
-    count = 0
+    send_profile(sock, "BROADCASTING", app_state)
     while True:
-        if count % 3 == 0:
-            send_profile(sock,'BROADCASTING', app_state)
-            count = 0
-        else:
-            send_ping(sock, app_state)
-        count += 1
+        send_ping(sock, app_state)
         time.sleep(globals.BROADCAST_INTERVAL)
 
 def listener_loop(sock: socket, app_state: AppState):    
