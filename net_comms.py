@@ -63,27 +63,55 @@ def broadcast_loop(sock: socket, app_state: AppState):
         count += 1
         time.sleep(globals.BROADCAST_INTERVAL)
 
-def listener_loop(sock: socket, app_state: AppState):
+def listener_loop(sock: socket, app_state: AppState):    
     print(f"[LISTENING] UDP port {globals.PORT} on {app_state.local_ip}...\n")
+    min_profile_interval = 5  # seconds
+    last_profile_time = 0
 
     while True:
         data, addr = sock.recvfrom(65535)
         try:
             raw_msg = data.decode('utf-8')
-            
             msg = parse_message(raw_msg)
             msg_type = msg.get("TYPE")
 
-            if msg_type == "PING":
-                continue 
+            if msg.get("USER_ID") == app_state.user_id:
+                continue  # Message is from self
            
-            
-          
-            #if (msg.get("USER_ID") == app_state.user_id or msg.get("FROM") == app_state.user_id):
-            #    continue  # Message is from self
-            if msg_type == "PROFILE":
+
+            # discovery
+              # only send profile if interval has passed, pings just trigger the check
+            if msg_type == "PING":
+                now = time.time()
+                if (now - last_profile_time) > min_profile_interval:
+                    send_profile(sock, "BROADCASTING", app_state)
+                    last_profile_time = now
+                continue
+            elif msg_type == "PROFILE":
                 handle_profile(msg, addr[0], app_state)
-            elif msg_type == "FOLLOW":
+                continue
+            
+            # ACK
+            if msg_type == "ACK":
+                handle_ack(msg, app_state, addr[0])
+                continue
+
+
+            # check for core feature msgs that the ip hasnt been spoofed
+            # I am crying from the fact that the format of msgs are inconsistent
+            # some only have user_id and others have FROM which basically is the user_id of the sender
+            # so I need to seperate the if else of PING AND PROFILE from the rest of the msg_types
+            # REMINDER that POST also has user_id instead of FROM :-(
+            print(msg_type)
+            username, user_ip = msg.get("FROM").split('@')
+            if user_ip != addr[0]:
+                continue
+
+            if msg.get("FROM") == app_state.user_id:
+                continue  # Message is from self again, curse the msg formats
+
+            # core features
+            if msg_type == "FOLLOW":
                 handle_follow_message(msg, app_state)
             elif msg_type == "UNFOLLOW":
                 handle_unfollow_message(msg, app_state)
@@ -94,8 +122,6 @@ def listener_loop(sock: socket, app_state: AppState):
                 handle_move(msg, app_state, sock, addr[0])
             elif msg_type == "TICTACTOE_RESULT":
                 handle_result(msg, app_state, sock, addr[0])
-            elif msg_type == "ACK":
-                handle_ack(msg, app_state, addr[0])
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:
