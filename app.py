@@ -102,6 +102,7 @@ def main(display_name, user_name, avatar_source_file=None):
 
             while True:
                 try:
+                    print(f'You are {game["symbol"]}')
                     print_board(game["board"])
                     pos = int(input("Enter position (0-8): "))
                     if not (0 <= pos <= 8):
