@@ -7,6 +7,7 @@ import threading
 from follow import send_follow, send_unfollow
 from dm import send_dm
 from post import send_post
+from like import send_like
 from pprint import pprint
 
 # TODO message queue to wait for acks
@@ -72,6 +73,12 @@ def main(display_name, user_name, avatar_source_file=None):
             target_user = input('Enter target user id: \n')
             dm_content = input('Enter message content: \n')
             send_dm(sock, dm_content, target_user, app_state)
+        elif cmd == "like":
+            post_timestamp = input('Enter post timestamp: \n')
+            send_like(sock, 'LIKE', post_timestamp, app_state)
+        elif cmd == "unlike":
+            post_timestamp = input('Enter post timestamp: \n')
+            send_like(sock, 'UNLIKE', post_timestamp, app_state)
 
 
 if __name__ == "__main__":

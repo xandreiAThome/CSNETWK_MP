@@ -3,4 +3,4 @@ PORT = 50999
 BROADCAST_INTERVAL = 2
 MASK = '255.255.255.0'
 TTL = 60
-
+POST_TTL = 3600 # since for some reason POST TTL is strictly 3600 but specs hint that it's changeable at runtime?
