@@ -51,6 +51,9 @@ def main(display_name, user_name, avatar_source_file=None):
         elif cmd == "verbose":          
             globals.verbose = not globals.verbose
             print(f"Verbose mode {'enabled' if globals.verbose else 'disabled'}")
+        elif cmd == "broadcast_verbose":          
+            globals.broadcast_verbose = not globals.broadcast_verbose
+            print(f"Broadcast Verbose mode {'enabled' if globals.broadcast_verbose else 'disabled'}")
         elif cmd == "follow":
             target_user_id = input('Enter target user id: \n')
             send_follow(sock, target_user_id, app_state)

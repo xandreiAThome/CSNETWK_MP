@@ -24,6 +24,14 @@ def send_ping(sock: socket, app_state: AppState):
     }
 
     sock.sendto(build_message(message).encode('utf-8'), (app_state.broadcast_ip, globals.PORT))
+    if globals.broadcast_verbose:
+        print(f"\n[SEND >]")
+        print(f"Message Type : PING")
+        print(f"Timestamp    : {time.time()}")
+        print(f"From IP      : {app_state.user_id.split('@')[1]}")
+        print(f"From         : {app_state.user_id}")
+        print(f"To           : {app_state.broadcast_ip}")
+        print(f"Status       : SENT\n")
 
 def send_profile(sock: socket, status: str, app_state: AppState):
     message = {
@@ -34,11 +42,30 @@ def send_profile(sock: socket, status: str, app_state: AppState):
     }
 
     sock.sendto(build_message(message).encode('utf-8'), (app_state.broadcast_ip, globals.PORT))
+    if globals.broadcast_verbose:
+        print(f"\n[SEND >]")
+        print(f"Message Type : PROFILE")
+        print(f"Timestamp    : {time.time()}")
+        print(f"From IP      : {app_state.user_id.split('@')[1]}")
+        print(f"From         : {app_state.user_id}")
+        print(f"To           : {app_state.broadcast_ip}")
+        print(f"Status       : {status}")
+        print(f"Display Name : {app_state.display_name}")
+        print(f"\n")
     
 def handle_profile(msg: dict, addr:str, app_state: AppState):
     display_name = msg.get("DISPLAY_NAME", "Unknown")
     user_id = msg.get("USER_ID")
     status = msg.get("STATUS", "")
+
+    if globals.broadcast_verbose:
+        print(f"\n[RECV <]")
+        print(f"Message Type : PROFILE")
+        print(f"Timestamp    : {datetime.now(timezone.utc).timestamp()}")
+        print(f"From IP      : {addr}")
+        print(f"User ID      : {user_id}")
+        print(f"Display Name : {display_name}")
+        print(f"Status       : {status}\n")
 
     if user_id not in app_state.peers:
         print(f"\n[PROFILE] (Detected User) {display_name}: {status}", end='\n\n')
@@ -69,9 +96,29 @@ def listener_loop(sock: socket, app_state: AppState):
             raw_msg = data.decode('utf-8')
             msg = parse_message(raw_msg)
             msg_type = msg.get("TYPE")
+            
+            from_field = msg.get("FROM")
+            user_id_field = msg.get("USER_ID")
 
-            if msg.get("USER_ID") == app_state.user_id:
-                continue  # Message is from self
+            # Only check FROM if it exists and is expected for this msg_type
+            if from_field:
+                try:
+                     # check for core feature msgs that the ip hasnt been spoofed
+                    # I am crying from the fact that the format of msgs are inconsistent
+                    # some only have user_id and others have FROM which basically is the user_id of the sender
+                    # so I need to seperate the if else of PING AND PROFILE from the rest of the msg_types
+                    # REMINDER that POST also has user_id instead of FROM :-(
+                    username, user_ip = from_field.split('@')
+                    if user_ip != addr[0]:
+                        continue
+                    if from_field == app_state.user_id:
+                        continue
+                except ValueError:
+                    pass  # FROM field is malformed, skip or handle as needed
+
+            # Only check USER_ID if it exists and is expected for this msg_type
+            if user_id_field and user_id_field == app_state.user_id:
+                continue
 
             # discovery
               # only send profile if interval has passed, pings just trigger the check
@@ -80,35 +127,19 @@ def listener_loop(sock: socket, app_state: AppState):
                 if (now - last_profile_time) > min_profile_interval:
                     send_profile(sock, "BROADCASTING", app_state)
                     last_profile_time = now
-                continue
+
             elif msg_type == "PROFILE":
                 handle_profile(msg, addr[0], app_state)
-                continue
+
             elif msg_type == "ACK":
                 handle_ack(msg, app_state, addr[0])
-                continue
-            
-
-            # check for core feature msgs that the ip hasnt been spoofed
-            # I am crying from the fact that the format of msgs are inconsistent
-            # some only have user_id and others have FROM which basically is the user_id of the sender
-            # so I need to seperate the if else of PING AND PROFILE from the rest of the msg_types
-            # REMINDER that POST also has user_id instead of FROM :-(
-            print(msg_type)
-            username, user_ip = msg.get("FROM").split('@')
-            if user_ip != addr[0]:
-                continue
-
-            if msg.get("FROM") == app_state.user_id:
-                continue  # Message is from self again, curse the msg formats
 
             # core features
-            if msg_type == "FOLLOW":
+            elif msg_type == "FOLLOW":
                 handle_follow_message(msg, app_state)
             elif msg_type == "UNFOLLOW":
                 handle_unfollow_message(msg, app_state)
             elif msg_type == "TICTACTOE_INVITE":
-                print("[DEBUG] Received INVITE")
                 handle_invite(msg, app_state, sock, addr[0])
             elif msg_type == "TICTACTOE_MOVE":
                 handle_move(msg, app_state, sock, addr[0])
