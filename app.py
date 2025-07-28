@@ -9,6 +9,7 @@ from dm import send_dm
 from post import send_post
 from like import send_like
 from pprint import pprint
+from group import create_group, update_group
 
 # TODO message queue to wait for acks
 # proccess action after getting ack
@@ -79,6 +80,25 @@ def main(display_name, user_name, avatar_source_file=None):
         elif cmd == "unlike":
             post_timestamp = input('Enter post timestamp: \n')
             send_like(sock, 'UNLIKE', post_timestamp, app_state)
+        elif cmd == "create_group":
+            group_name = input('Enter group name: \n')
+            members = input('Enter ids of members separated by commas: \n')
+            create_group(sock, group_name, members, app_state)
+        elif cmd == "update_group":
+            group_id = input('Enter group id: \n')
+            members_add = input('Enter ids of members separated by commas to ADD: \n')
+            members_remove = input('Enter ids of members separated by commas to REMOVE: \n')
+            update_group(sock, group_id, members_add, members_remove, app_state)
+        elif cmd == "check_groups_owned":
+            print()
+            pprint(app_state.owned_groups)
+            print()
+        elif cmd == "check_groups":
+            print('Groups owned:')
+            pprint(app_state.owned_groups)
+            print('Groups joined:')
+            pprint(app_state.joined_groups)
+            print()
 
 
 if __name__ == "__main__":

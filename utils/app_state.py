@@ -24,3 +24,7 @@ class AppState:
     # used for referencing posts for like/unlike
     received_posts: Dict[str,dict] = field(default_factory=dict)
     sent_posts: Dict[str,dict] = field(default_factory=dict)
+
+    # used for managing groups
+    owned_groups: Dict[str,dict] = field(default_factory=dict) # groups owned by this client
+    joined_groups: Dict[str,dict] = field(default_factory=dict) # groups this client joined and doesn't own
