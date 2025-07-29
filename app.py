@@ -99,10 +99,13 @@ def main(display_name, user_name, avatar_source_file=None):
             print('Groups joined:')
             pprint(app_state.joined_groups)
             print()
-        elif cmd == "message_group":
+        elif cmd == "message_group" or cmd == "group_message":
             group_id = input('Enter group id: \n')
-            content = input('Enter message content: \n')
-            group_message(sock, group_id, content, app_state)
+            if (group_id in app_state.joined_groups or group_id in app_state.owned_groups):
+                content = input('Enter message content: \n')
+                group_message(sock, group_id, content, app_state)
+            else:
+                print("invalid group id. see groups using \'check_groups\'")
 
 
 if __name__ == "__main__":

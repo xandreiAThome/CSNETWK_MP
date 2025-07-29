@@ -56,7 +56,7 @@ def handle_like_message(message: dict, app_state: AppState):
     user_id, timestamp_ttl, scope = token.split('|')
     timestamp_ttl = float(timestamp_ttl)
 
-    if timestamp_ttl - timestamp_now > 0 and scope == 'broadcast':
+    if timestamp_ttl - timestamp_now > 0 and scope == 'broadcast' and original_post_timestamp in app_state.sent_posts:
 
         display_name = app_state.peers.get(user_id).get("display_name")
 
