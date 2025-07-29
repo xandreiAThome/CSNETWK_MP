@@ -14,11 +14,11 @@ def create_group(sock:socket, group_name:str, members:str,app_state: AppState):
         message = {
             "TYPE": "GROUP_CREATE",
             "FROM": app_state.user_id,
-            "GROUP_ID": group_name.lower() + str(uuid.uuid4()),
+            "GROUP_ID": group_name.lower().replace(' ','_') + str(uuid.uuid4()),
             "GROUP_NAME": group_name,
             "MEMBERS": members, # comma separated values
             "TIMESTAMP": timestamp_now,
-            "TOKEN": f'{app_state.user_id}|{timestamp_now}|group'
+            "TOKEN": f'{app_state.user_id}|{timestamp_now + globals.TTL}|group'
         }
 
        
@@ -39,52 +39,25 @@ def create_group(sock:socket, group_name:str, members:str,app_state: AppState):
         print(f'\n[ERROR] | {e}', end='\n\n')
 
 def handle_create_group(message: dict, app_state: AppState):
-    # timestamp_now = datetime.now(timezone.utc).timestamp()
+
+    timestamp_now = datetime.now(timezone.utc).timestamp()
     token:str = message["TOKEN"]
     group_name:str = message["GROUP_NAME"]
     group_id:str = message.get("GROUP_ID")
     invited_members:str = message["MEMBERS"]
-    user_id, timestamp, scope = token.split('|')
-    timestamp = float(timestamp)
+    user_id, timestamp_expire, scope = token.split('|')
+    timestamp_expire = float(timestamp_expire)
 
     part_of_group = app_state.user_id in invited_members
 
     # only receive the message if within group scope and contains this user's id
-    if scope == 'group' and part_of_group:
+    if scope == 'group' and part_of_group and timestamp_expire - timestamp_now > 0:
         print(f"\n[GROUP] You've been added to {group_name}", end='\n\n')
 
         with app_state.lock:
             app_state.joined_groups[group_id] = {
                 # empty for now, unless other properties may need to be tracked by members
             }
-
-def handle_update_group(message: dict, app_state: AppState):
-    # TODO: remove yourself if part of users to remove, add if part of users to add
-    # timestamp_now = datetime.now(timezone.utc).timestamp()
-    token:str = message["TOKEN"]
-    group_name:str = message.get("GROUP_NAME")
-    group_id:str = message.get("GROUP_ID")
-    invited_members:str = message.get("ADD")
-    removed_members:str = message.get("REMOVE")
-    user_id, timestamp, scope = token.split('|')
-    timestamp = float(timestamp)
-
-    part_of_group = group_id in app_state.joined_groups
-
-    # only receive the message if within group scope and contains this user's id
-    if scope == 'group':
-        if part_of_group and app_state.user_id in removed_members:
-            print(f"\n[GROUP] You've been removed from {group_name}", end='\n\n')
-
-            with app_state.lock:
-                app_state.joined_groups.pop(group_id, None)
-        elif not part_of_group and app_state.user_id in invited_members:
-            print(f"\n[GROUP] You've been added to {group_name}", end='\n\n')
-
-            with app_state.lock:
-                app_state.joined_groups[group_id] = {
-                    # empty for now, unless other properties may need to be tracked by members
-                }
 
 def update_group(sock:socket, group_id:str, members_add:str, members_remove:str, app_state: AppState):
     
@@ -99,7 +72,7 @@ def update_group(sock:socket, group_id:str, members_add:str, members_remove:str,
             "ADD": members_add, # comma separated values
             "REMOVE": members_remove,
             "TIMESTAMP": timestamp_now,
-            "TOKEN": f'{app_state.user_id}|{timestamp_now}|group'
+            "TOKEN": f'{app_state.user_id}|{timestamp_now + globals.TTL}|group'
         }
 
         sock.sendto(build_message(message).encode('utf-8'), (app_state.broadcast_ip, globals.PORT))
@@ -121,4 +94,66 @@ def update_group(sock:socket, group_id:str, members_add:str, members_remove:str,
         pass
     except KeyError as e:
         print(f'\n[ERROR] | {e}', end='\n\n')
-        
+
+def handle_update_group(message: dict, app_state: AppState):
+    
+    timestamp_now = datetime.now(timezone.utc).timestamp()
+    token:str = message["TOKEN"]
+    group_name:str = message.get("GROUP_NAME")
+    group_id:str = message.get("GROUP_ID")
+    invited_members:str = message.get("ADD")
+    removed_members:str = message.get("REMOVE")
+    user_id, timestamp_expire, scope = token.split('|')
+    timestamp_expire = float(timestamp_expire)
+
+    part_of_group = group_id in app_state.joined_groups
+
+    # only receive the message if within group scope and contains this user's id
+    if scope == 'group' and timestamp_expire - timestamp_now > 0:
+        # remove yourself if part of users to remove, add if part of users to add
+        if part_of_group and app_state.user_id in removed_members:
+            print(f"\n[GROUP] You've been removed from {group_name}", end='\n\n')
+
+            with app_state.lock:
+                app_state.joined_groups.pop(group_id, None)
+        elif not part_of_group and app_state.user_id in invited_members:
+            print(f"\n[GROUP] You've been added to {group_name}", end='\n\n')
+
+            with app_state.lock:
+                app_state.joined_groups[group_id] = {
+                    # empty for now, unless other properties may need to be tracked by members
+                }
+
+def group_message(sock:socket, group_id:str, content:str , app_state: AppState):
+
+    try:
+        timestamp_now = datetime.now(timezone.utc).timestamp()
+
+        message = {
+            "TYPE": "GROUP_MESSAGE",
+            "FROM": app_state.user_id,
+            "GROUP_ID": group_id,
+            "CONTENT": content,
+            "TIMESTAMP": timestamp_now,
+            "TOKEN": f'{app_state.user_id}|{timestamp_now + globals.TTL}|group'
+        }
+
+        sock.sendto(build_message(message).encode('utf-8'), (app_state.broadcast_ip, globals.PORT))
+
+    except KeyError as e:
+        print(f'\n[ERROR] | {e}', end='\n\n')
+
+def handle_group_message(message: dict, app_state: AppState):
+
+    timestamp_now = datetime.now(timezone.utc).timestamp()
+    token:str = message["TOKEN"]
+    group_id:str = message.get("GROUP_ID")
+    content:str = message.get("CONTENT")
+    user_id, timestamp_expire, scope = token.split('|')
+    timestamp_expire = float(timestamp_expire)
+
+    part_of_group = group_id in app_state.joined_groups or group_id in app_state.owned_groups
+
+    # only receive the message if within group scope and user is in the group
+    if scope == 'group' and timestamp_expire - timestamp_now > 0 and part_of_group:
+        print(f"{user_id} sent \"{content}\"")

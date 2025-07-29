@@ -9,7 +9,7 @@ from dm import send_dm
 from post import send_post
 from like import send_like
 from pprint import pprint
-from group import create_group, update_group
+from group import create_group, update_group, group_message
 
 # TODO message queue to wait for acks
 # proccess action after getting ack
@@ -99,6 +99,10 @@ def main(display_name, user_name, avatar_source_file=None):
             print('Groups joined:')
             pprint(app_state.joined_groups)
             print()
+        elif cmd == "message_group":
+            group_id = input('Enter group id: \n')
+            content = input('Enter message content: \n')
+            group_message(sock, group_id, content, app_state)
 
 
 if __name__ == "__main__":

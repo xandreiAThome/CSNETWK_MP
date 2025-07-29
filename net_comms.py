@@ -7,7 +7,7 @@ from follow import handle_follow_message, handle_unfollow_message
 from dm import handle_dm
 from post import handle_post_message
 from like import handle_like_message
-from group import handle_create_group, handle_update_group
+from group import handle_create_group, handle_update_group, handle_group_message
 
 
 def get_local_ip():
@@ -126,6 +126,8 @@ def listener_loop(sock: socket, app_state: AppState):
                 handle_create_group(msg, app_state)
             elif msg_type == "GROUP_UPDATE":
                 handle_update_group(msg, app_state)
+            elif msg_type == "GROUP_MESSAGE":
+                handle_group_message(msg, app_state)
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:
