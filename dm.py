@@ -1,6 +1,7 @@
 # dm.py
 import socket
 import uuid
+import net_comms
 import utils.globals as globals
 from datetime import datetime, timezone
 from utils import *
@@ -25,7 +26,9 @@ def send_dm(sock:socket, content:str, target_user_id:str, app_state: AppState):
             "TOKEN": f'{app_state.user_id}|{timestamp_now + globals.TTL}|chat'
         }
 
-        sock.sendto(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))
+        # sock.send(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))
+
+        net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
             
         print(f'\n[DM] You sent {target_username}: {content}', end='\n\n')
     except KeyError as e:

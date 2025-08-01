@@ -154,7 +154,7 @@ def listener_loop(sock: socket, app_state: AppState):
                 continue
 
             print(msg_type)
-            
+
             if msg.get("FROM") == app_state.user_id:
                 continue  # Message is from self again, curse the msg formats
             elif msg_type == "ACK":
@@ -218,7 +218,7 @@ def ack_resend_loop(sock, app_state):
 
 # Send message requiring ACK
 def send_with_ack(sock, message: dict, app_state: AppState, ip: str):
-    ackable = {"TICTACTOE_INVITE", "TICTACTOE_MOVE", "TICTACTOE_RESULT"} # Add more message types here
+    ackable = {"TICTACTOE_INVITE", "TICTACTOE_MOVE", "TICTACTOE_RESULT", "DM"} # Add more message types here
     sock.sendto(build_message(message).encode("utf-8"), (ip, globals.PORT))
 
     if message["TYPE"] in ackable:
