@@ -168,7 +168,7 @@ def listener_loop(sock: socket, app_state: AppState):
             elif msg_type == "POST":
                 handle_post_message(msg, app_state)
             elif msg_type == "DM":
-                handle_dm(msg, app_state)
+                handle_dm(msg, app_state, sock, addr[0])
             elif msg_type == "LIKE":
                 handle_like_message(msg, app_state)
             elif msg_type == "GROUP_CREATE":

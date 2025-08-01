@@ -34,16 +34,18 @@ def send_dm(sock:socket, content:str, target_user_id:str, app_state: AppState):
     except KeyError as e:
         print(f'\n[ERROR] invalid user_id | {e}', end='\n\n')
 
-def handle_dm(message: dict, app_state: AppState):
+def handle_dm(message: dict, app_state: AppState, sock: socket, sender_ip:str, ):
     # verify TIMESTAMP, TOKEN, etc.
     timestamp_now = datetime.now(timezone.utc).timestamp()
     token:str = message["TOKEN"] 
     user_id, timestamp_ttl, scope = token.split('|')
     timestamp_ttl = float(timestamp_ttl)
     content:str = message["CONTENT"]
-    
+
     # only receive the message within TTL and chat scope
     if timestamp_ttl - timestamp_now > 0 and scope == 'chat':
+
+        net_comms.send_ack(sock, message["MESSAGE_ID"], sender_ip, app_state)
 
         display_name = app_state.peers[user_id]["display_name"]
         print(f"\n[DM] {display_name} chatted you: {content}", end='\n\n')
