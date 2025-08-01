@@ -25,6 +25,15 @@ def send_follow(sock:socket, target_user_id:str, app_state: AppState):
             "TOKEN": f'{app_state.user_id}|{timestamp_now + globals.TTL}|follow'
         }
         sock.sendto(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))
+        if globals.verbose:
+            print(f"\n[SEND >]")
+            print(f"Message Type : FOLLOW")
+            print(f"Timestamp    : {timestamp_now}")
+            print(f"From         : {app_state.user_id}")
+            print(f"To           : {target_user_id}")
+            print(f"To IP        : {target_user['ip']}")
+            print(f"Display Name : {target_user['display_name']}")
+            print(f"Status       : SENT\n")
         print(f'\n[FOLLOW] You followed {target_user["display_name"]}', end='\n\n')
     except KeyError as e:
         print(f'\n[ERROR] invalid user_id | {e}', end='\n\n')
@@ -42,6 +51,13 @@ def handle_follow_message(message: dict, app_state: AppState):
             app_state.followers.add(user_id)
 
         display_name = app_state.peers[user_id]["display_name"]
+        if globals.verbose:
+            print(f"\n[RECV <]")
+            print(f"Message Type : FOLLOW")
+            print(f"Timestamp    : {timestamp_now}")
+            print(f"From         : {user_id}")
+            print(f"Display Name : {display_name}")
+            print(f"Status       : RECEIVED\n")
         print(f"\n[FOLLOW] {display_name} followed you", end='\n\n')
     
 
@@ -64,6 +80,15 @@ def send_unfollow(sock: socket, target_user_id: str, app_state: AppState):
             with app_state.lock:
                 app_state.following.remove(target_user_id)
 
+            if globals.verbose:
+                print(f"\n[SEND >]")
+                print(f"Message Type : UNFOLLOW")
+                print(f"Timestamp    : {timestamp_now}")
+                print(f"From         : {app_state.user_id}")
+                print(f"To           : {target_user_id}")
+                print(f"To IP        : {target_user['ip']}")
+                print(f"Display Name : {target_user['display_name']}")
+                print(f"Status       : SENT\n")
             print(f'\n[FOLLOW] You unfollowed {target_user["display_name"]}', end='\n\n')
             sock.sendto(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))
         except KeyError as e:
@@ -82,8 +107,14 @@ def handle_unfollow_message(message, app_state: AppState):
     if timestamp_ttl - timestamp_now > 0 and scope == 'follow':
         with app_state.lock:
             app_state.followers.discard(user_id)
-            
         display_name = app_state.peers[user_id]["display_name"]
+        if globals.verbose:
+            print(f"\n[RECV <]")
+            print(f"Message Type : UNFOLLOW")
+            print(f"Timestamp    : {timestamp_now}")
+            print(f"From         : {user_id}")
+            print(f"Display Name : {display_name}")
+            print(f"Status       : RECEIVED\n")
         print(f"\n[FOLLOW] {display_name} unfollowed you", end='\n\n')
 
 

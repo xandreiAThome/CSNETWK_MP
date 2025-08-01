@@ -8,6 +8,7 @@ class AppState:
     display_name: Optional[str] = None
     avatar_data: Optional[str] = None
 
+    listen_port: Optional[int] = None
     local_ip: Optional[str] = None
     broadcast_ip: Optional[str] = None
     lock: Lock = field(default_factory=Lock, repr=False, compare=False)
@@ -28,3 +29,10 @@ class AppState:
     # used for managing groups
     owned_groups: Dict[str,dict] = field(default_factory=dict) # groups owned by this client
     joined_groups: Dict[str,dict] = field(default_factory=dict) # groups this client joined and doesn't own
+    # ACK
+    pending_acks: Dict[str, dict] = field(default_factory=dict)
+
+
+    # TICTACTOE INFORMATION
+    active_games: Dict[str, dict] = field(default_factory=dict)
+    received_moves: Set[tuple] = field(default_factory=set)  # (GAMEID, TURN)
