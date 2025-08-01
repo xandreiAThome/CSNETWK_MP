@@ -124,6 +124,8 @@ def listener_loop(sock: socket, app_state: AppState):
             if user_id_field and user_id_field == app_state.user_id:
                 continue
 
+            #print(msg_type)
+
             # discovery
               # only send profile if interval has passed, pings just trigger the check
             if msg_type == "PING":
@@ -137,25 +139,24 @@ def listener_loop(sock: socket, app_state: AppState):
 
             # handle cases where the message uses USER_ID instead of FROM
             # failure to handle such cases used to result in errors trying to parse Nonetype
-            msg_from = msg.get("FROM")
-            msg_user_id = msg.get("USER_ID")
+            
+            # msg_from = msg.get("FROM")
+            # msg_user_id = msg.get("USER_ID")
 
-            if not (msg_from is None):
-                username, user_ip = msg.get("FROM").split('@')
-            elif not (msg_user_id is None):
-                username, user_ip = msg.get("USER_ID").split('@')
+            # if not (msg_from is None):
+            #     username, user_ip = msg.get("FROM").split('@')
+            # elif not (msg_user_id is None):
+            #     username, user_ip = msg.get("USER_ID").split('@')
 
             # check for core feature msgs that the ip hasnt been spoofed
             # I am crying from the fact that the format of msgs are inconsistent
             # some only have user_id and others have FROM which basically is the user_id of the sender
             # so I need to seperate the if else of PING AND PROFILE from the rest of the msg_types
             # REMINDER that POST also has user_id instead of FROM :-(
-            if user_ip != addr[0]:
-                continue
+            # if user_ip != addr[0]:
+            #     continue
 
-            print(msg_type)
-
-            if msg.get("FROM") == app_state.user_id:
+            elif msg.get("FROM") == app_state.user_id:
                 continue  # Message is from self again, curse the msg formats
             elif msg_type == "ACK":
                 handle_ack(msg, app_state, addr[0])
