@@ -1,5 +1,4 @@
 # group.py
-# post.py
 import socket
 import uuid
 import utils.globals as globals
@@ -17,19 +16,21 @@ def create_group(sock: socket, group_name: str, members: str, app_state: AppStat
             "FROM": app_state.user_id,
             "GROUP_ID": group_name.lower().replace(" ", "_") + str(uuid.uuid4()),
             "GROUP_NAME": group_name,
-            "MEMBERS": members,  # comma separated values
+            "MEMBERS": members + ',' + str(app_state.user_id),  # comma separated values
             "TIMESTAMP": timestamp_now,
             "TOKEN": f"{app_state.user_id}|{timestamp_now + globals.TTL}|group",
         }
 
-        # define initial group data, more importantly, store user ids in dictionary or smthn
-        member_list = members.split(",")
-        member_list = list(filter(lambda x: x in app_state.peers, member_list))
+        # define initial group data, more importantly, store user ids in dictionary
+        member_set = members.split(",")
+        member_set = set(filter(lambda x: x in app_state.peers, member_set))
+        member_set.add(app_state.user_id)
+
         # add to dictionary of created groups
         with app_state.lock:
             app_state.owned_groups[message.get("GROUP_ID")] = {
                 "GROUP_NAME": group_name,
-                "MEMBERS": member_list,
+                "MEMBERS": member_set
             }
 
         sock.sendto(
@@ -43,7 +44,7 @@ def create_group(sock: socket, group_name: str, members: str, app_state: AppStat
             print(f"From         : {app_state.user_id}")
             print(f"Group Name   : {group_name}")
             print(f"Group ID     : {message['GROUP_ID']}")
-            print(f"Members      : {member_list}")
+            print(f"Members      : {member_set}")
             print(f"Status       : SENT\n")
         print(f"\n[GROUP_CREATE] You created a new group: {group_name}", end="\n\n")
     except KeyError as e:
@@ -74,11 +75,20 @@ def handle_create_group(message: dict, app_state: AppState):
             print(f"Members      : {invited_members}")
             print(f"Status       : RECEIVED\n")
         print(f"\n[GROUP] You've been added to {group_name}", end="\n\n")
-        with app_state.lock:
-            app_state.joined_groups[group_id] = {
-                # empty for now, unless other properties may need to be tracked by members
-            }
 
+        member_set = invited_members.split(",")
+        member_set = set(filter(lambda x: x in app_state.peers, member_set))
+        member_set.add(app_state.user_id)
+
+        add_self(group_id, group_name, member_set, app_state)
+
+# mark self as added to a group
+def add_self(group_id: str, group_name: str, member_set: set, app_state : AppState):
+    with app_state.lock:
+        app_state.joined_groups[group_id] = {
+            'GROUP': group_name,
+            'MEMBERS': member_set
+        }
 
 def update_group(
     sock: socket,
@@ -90,6 +100,32 @@ def update_group(
 
     try:
         timestamp_now = datetime.now(timezone.utc).timestamp()
+
+        # Filter out self from members to remove.
+        members_remove = ",".join(filter(lambda x: x.strip() != app_state.user_id, members_remove.split(",")))
+
+        # get list of members then add and/or remove members depending on parameters
+        member_set: set = app_state.owned_groups[group_id].get("MEMBERS")
+        members_remove_list = members_remove.split(",")
+        members_append_list = members_add.split(",")
+
+        # only existing peers can be added
+        members_append_list = set(filter(lambda x: x in app_state.peers, members_append_list))
+        # owner cannot remove themselves
+        members_remove_list = set(filter(lambda x: x != app_state.user_id, members_remove_list))
+
+        for member in members_remove_list:
+            if member in member_set:
+                with app_state.lock:
+                    member_set.remove(member)
+        for member in members_append_list:
+            with app_state.lock:
+                member_set.add(member)
+
+        # only get members to add after removing and adding to current member set has been accomplished
+        current_members: set = app_state.owned_groups[group_id].get("MEMBERS")
+        # turn the set into comma joined strings
+        members_add = ",".join(current_members)
 
         message = {
             "TYPE": "GROUP_UPDATE",
@@ -113,26 +149,17 @@ def update_group(
             print(f"From         : {app_state.user_id}")
             print(f"Group Name   : {message['GROUP_NAME']}")
             print(f"Group ID     : {group_id}")
+            print(f"Members: {current_members}")
             print(f"Add Members  : {members_add}")
             print(f"Remove Members: {members_remove}")
             print(f"Status       : SENT\n")
-        # get list of members then add or remove them depending on parameters
-        member_list: list = app_state.owned_groups[group_id].get("MEMBERS")
-        members_remove_list = members_remove.split(",")
-        members_append_list = members_add.split(",")
-
-        for member in members_remove_list:
-            if member in member_list:
-                member_list.remove(member)
-        for member in members_append_list:
-            member_list.append(member)
+        
 
         group_name = app_state.owned_groups[group_id].get("GROUP_NAME")
         print(f'The group "{group_name}" member list was updated.')
         pass
     except KeyError as e:
         print(f"\n[ERROR] | {e}", end="\n\n")
-
 
 def handle_update_group(message: dict, app_state: AppState):
 
@@ -172,11 +199,34 @@ def handle_update_group(message: dict, app_state: AppState):
                 print(f"Added        : {invited_members}")
                 print(f"Status       : RECEIVED\n")
             print(f"\n[GROUP] You've been added to {group_name}", end="\n\n")
-            with app_state.lock:
-                app_state.joined_groups[group_id] = {
-                    # empty for now, unless other properties may need to be tracked by members
-                }
 
+            member_set = set(filter(lambda x: x in app_state.peers, invited_members.split(',')))
+            member_set.add(app_state.user_id)
+
+            add_self(group_id, group_name, member_set, app_state)
+        elif part_of_group:
+            if globals.verbose:
+                print(f"\n[RECV <]")
+                print(f"Message Type : GROUP_UPDATE")
+                print(f"Timestamp    : {timestamp_now}")
+                print(f"Group Name   : {group_name}")
+                print(f"Group ID     : {group_id}")
+                print(f"Added        : {invited_members}")
+                print(f"Status       : RECEIVED\n")
+            
+            # the group update does not involve this client, but it still needs to track the change
+            member_set: set = app_state.joined_groups[group_id].get("MEMBERS")
+
+            # get members that were added
+            members_to_add = set(filter(lambda x: x in app_state.peers, invited_members.split(',')))
+
+            # get members that were removed
+            members_to_remove = set(filter(lambda x: x in app_state.peers, removed_members.split(',')))
+
+            for x in members_to_remove:
+                member_set.remove(x)
+            for x in members_to_add:
+                member_set.add(x)
 
 def group_message(sock: socket, group_id: str, content: str, app_state: AppState):
 
@@ -206,7 +256,6 @@ def group_message(sock: socket, group_id: str, content: str, app_state: AppState
             print(f"Status       : SENT\n")
     except KeyError as e:
         print(f"\n[ERROR] | {e}", end="\n\n")
-
 
 def handle_group_message(message: dict, app_state: AppState):
 
