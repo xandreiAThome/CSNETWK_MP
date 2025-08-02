@@ -107,6 +107,25 @@ def listener_loop(sock: socket, app_state: AppState):
             msg = parse_message(raw_msg)
             msg_type = msg.get("TYPE")
 
+            # Induce packet loss for FILE and GAME messages
+            if globals.induce_loss and msg_type in {
+                "TICTACTOE_INVITE",
+                "TICTACTOE_MOVE",
+                "TICTACTOE_RESULT",
+                "FILE_OFFER",
+                "FILE_CHUNK",
+                "FILE_RECEIVED"
+            }:
+                import random
+                if random.random() < globals.loss_rate:  # arbitrary chance to drop
+                    if globals.verbose:
+                        print(f"[DROP] Induced packet loss for {msg_type}")
+                    continue
+
+            # Continue as normal
+            from_field = msg.get("FROM")
+            user_id_field = msg.get("USER_ID")
+
             from_field = msg.get("FROM")
             user_id_field = msg.get("USER_ID")
 

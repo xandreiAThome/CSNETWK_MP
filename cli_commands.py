@@ -171,6 +171,14 @@ def get_cli_commands(sock, app_state, globals):
         send_result(sock, app_state, opponent, game_id, "FORFEIT")
         with app_state.lock:
             del app_state.active_games[game_id]
+    
+    def cmd_induce_loss_on():
+        globals.induce_loss = True
+        print("Induced packet loss ENABLED for Game and File messages.")
+
+    def cmd_induce_loss_off():
+            globals.induce_loss = False
+            print("Induced packet loss DISABLED for Game and File messages.")
 
     commands = {
         "exit": lambda: "__exit__",
@@ -197,5 +205,7 @@ def get_cli_commands(sock, app_state, globals):
         "invite_ttt": cmd_invite_ttt,
         "move": cmd_move,
         "forfeit": cmd_forfeit,
+        "induce_loss_on": cmd_induce_loss_on,
+        "induce_loss_off": cmd_induce_loss_off,
     }
     return commands
