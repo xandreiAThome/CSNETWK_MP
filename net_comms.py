@@ -9,6 +9,7 @@ from post import handle_post_message
 from like import handle_like_message
 from group import handle_create_group, handle_update_group, handle_group_message
 from tictactoe import handle_invite, handle_move, handle_result
+from file_transfer import handle_file_offer, handle_file_chunk
 
 
 def get_local_ip():
@@ -187,6 +188,10 @@ def listener_loop(sock: socket, app_state: AppState):
                 handle_move(msg, app_state, sock, addr[0])
             elif msg_type == "TICTACTOE_RESULT":
                 handle_result(msg, app_state, sock, addr[0])
+            elif msg_type == "FILE_OFFER":
+                handle_file_offer(msg, app_state, sock, addr[0])
+            elif msg_type == "FILE_CHUNK":
+                handle_file_chunk(msg, app_state, sock, addr[0])
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:

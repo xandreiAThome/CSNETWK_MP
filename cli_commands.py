@@ -6,12 +6,13 @@ from post import send_post
 from like import send_like
 from group import create_group, update_group, group_message
 from tictactoe import move, send_invite, print_board, send_result
+from file_transfer import accept_file, send_file
 
 
 def get_cli_commands(sock, app_state, globals):
     def cmd_help():
         print("\nAvailable commands:")
-        for cmd in sorted(commands.keys()):
+        for cmd in commands.keys():
             print(f"- {cmd}")
         print()
 
@@ -172,6 +173,16 @@ def get_cli_commands(sock, app_state, globals):
         with app_state.lock:
             del app_state.active_games[game_id]
 
+    def cmd_accept_file():
+        file_id = input("Enter file ID to accept: \n")
+        accept_file(file_id)
+        
+    def cmd_send_file():
+        target_user_id = input("Enter target user id (e.g. bob@192.168.1.12): \n")
+        file_path = input("Enter path to file to send: \n")
+        description = input("Optional file description: \n")
+        send_file(sock, app_state, target_user_id, file_path, description)
+
     commands = {
         "exit": lambda: "__exit__",
         "help": cmd_help,
@@ -197,5 +208,7 @@ def get_cli_commands(sock, app_state, globals):
         "invite_ttt": cmd_invite_ttt,
         "move": cmd_move,
         "forfeit": cmd_forfeit,
+        "accept_file": cmd_accept_file,
+        "send_file": cmd_send_file,
     }
     return commands
