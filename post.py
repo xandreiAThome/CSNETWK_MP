@@ -28,7 +28,14 @@ def send_post(sock:socket, content:str, app_state: AppState):
         # print(app_state.sent_posts)
 
         sock.sendto(build_message(message).encode('utf-8'), (app_state.broadcast_ip, globals.PORT))
-            
+        if globals.verbose:
+            print(f"\n[SEND >]")
+            print(f"Message Type : POST")
+            print(f"Timestamp    : {timestamp_now}")
+            print(f"From         : {app_state.user_id}")
+            print(f"To           : {app_state.broadcast_ip}")
+            print(f"Content      : {content}")
+            print(f"Status       : SENT\n")
         print(f'\n[POST] You posted: {content}', end='\n\n')
     except KeyError as e:
         print(f'\n[ERROR] | {e}', end='\n\n')
@@ -51,7 +58,15 @@ def handle_post_message(message: dict, app_state: AppState):
         if timestamp_ttl - timestamp_now > 0 and scope == 'broadcast':
 
             display_name = app_state.peers[user_id]["display_name"]
-            print(f"\n[POST : {post_timestamp}] {display_name}: {content}", end='\n\n')
+            if globals.verbose:
+                print(f"\n[RECV <]")
+                print(f"Message Type : POST")
+                print(f"Timestamp    : {post_timestamp}")
+                print(f"From         : {user_id}")
+                print(f"Display Name : {display_name}")
+                print(f"Content      : {content}")
+                print(f"Status       : RECEIVED\n")
+            print(f"\n[POST : [UTC Time: {post_timestamp}] {display_name}: {content}", end='\n\n')
 
             with app_state.lock:
                 app_state.received_posts[post_timestamp] = {
@@ -59,6 +74,5 @@ def handle_post_message(message: dict, app_state: AppState):
                     "CONTENT": content,
                     "LIKED": 0,
                 }
-            
             # print(app_state.received_posts)
     
