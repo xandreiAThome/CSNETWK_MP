@@ -2,6 +2,7 @@ import base64
 import os
 import time
 import uuid
+import utils.globals as globals
 
 from utils import build_message
 
