@@ -126,9 +126,6 @@ def listener_loop(sock: socket, app_state: AppState):
             from_field = msg.get("FROM")
             user_id_field = msg.get("USER_ID")
 
-            from_field = msg.get("FROM")
-            user_id_field = msg.get("USER_ID")
-
             # Only check FROM if it exists and is expected for this msg_type
             if from_field:
                 try:

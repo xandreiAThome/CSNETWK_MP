@@ -177,8 +177,8 @@ def get_cli_commands(sock, app_state, globals):
         print("Induced packet loss ENABLED for Game and File messages.")
 
     def cmd_induce_loss_off():
-            globals.induce_loss = False
-            print("Induced packet loss DISABLED for Game and File messages.")
+        globals.induce_loss = False
+        print("Induced packet loss DISABLED for Game and File messages.")
 
     commands = {
         "exit": lambda: "__exit__",
