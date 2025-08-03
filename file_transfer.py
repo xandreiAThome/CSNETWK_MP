@@ -109,6 +109,9 @@ def send_file_received(sock, from_id, to_id, file_id):
         "STATUS": "COMPLETE",
         "TIMESTAMP": str(int(time.time()))
     }
+    if "@" not in to_id or len(to_id.split("@")) < 2:
+        print(f"Invalid user ID format for recipient: {to_id}")
+        return
     ip = to_id.split("@")[1]
     sock.sendto(build_message(message).encode("utf-8"), (ip, globals.PORT))
 
