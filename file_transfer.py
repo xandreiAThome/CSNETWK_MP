@@ -40,7 +40,7 @@ def handle_file_offer(message, app_state, sock, sender_ip):
 
 
 def accept_file(file_id):
-    from utils.globals import app_state  # pull app_state if not passed
+def accept_file(file_id, app_state):
     if file_id not in app_state.pending_file_offers:
         print("No such file offer found.")
         return
