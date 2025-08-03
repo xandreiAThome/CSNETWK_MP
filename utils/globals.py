@@ -7,4 +7,4 @@ POST_TTL = 3600  # since for some reason POST TTL is strictly 3600 but specs hin
 verbose = False
 broadcast_verbose = False
 induce_loss = False
-loss_rate = 0.3 # arbitrary chance to drop packets
+loss_rate = 0.3  # arbitrary chance to drop packets
