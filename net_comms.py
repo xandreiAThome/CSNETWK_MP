@@ -117,7 +117,6 @@ def listener_loop(sock: socket, app_state: AppState):
                 "FILE_CHUNK",
                 "FILE_RECEIVED"
             }:
-                import random
                 if random.random() < 0.3:  # arbitrary 30% chance to drop
                     if globals.verbose:
                         print(f"[DROP] Induced packet loss for {msg_type}")
