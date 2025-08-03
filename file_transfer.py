@@ -150,6 +150,9 @@ def send_file(sock, app_state, to_user_id, filepath, description=""):
         "TOKEN": token,
     }
 
+    if "@" not in to_user_id or len(to_user_id.split("@")) < 2:
+        print("Invalid user ID format. Expected format: username@ip_address")
+        return
     to_ip = to_user_id.split("@")[1]
     sock.sendto(build_message(offer_msg).encode("utf-8"), (to_ip, globals.PORT))
 
