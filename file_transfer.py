@@ -109,7 +109,7 @@ def send_file_received(sock, from_id, to_id, file_id):
         "TIMESTAMP": str(int(time.time()))
     }
     ip = to_id.split("@")[1]
-    sock.sendto(build_message(message).encode("utf-8"), (ip, 50999))  # hardcoded port per LSNP spec
+    sock.sendto(build_message(message).encode("utf-8"), (ip, globals.PORT))
 
 
 def send_file(sock, app_state, to_user_id, filepath, description=""):
@@ -131,8 +131,7 @@ def send_file(sock, app_state, to_user_id, filepath, description=""):
 
     file_id = uuid.uuid4().hex[:8]
     timestamp = int(time.time())
-    ttl = 3600
-    token = f"{app_state.user_id}|{timestamp + ttl}|file"
+    token = f"{app_state.user_id}|{timestamp + globals.POST_TTL}|file"
 
     offer_msg = {
         "TYPE": "FILE_OFFER",
@@ -148,10 +147,10 @@ def send_file(sock, app_state, to_user_id, filepath, description=""):
     }
 
     to_ip = to_user_id.split("@")[1]
-    sock.sendto(build_message(offer_msg).encode("utf-8"), (to_ip, 50999))
+    sock.sendto(build_message(offer_msg).encode("utf-8"), (to_ip, globals.PORT))
 
     # Now send chunks
-    chunk_size = 2048
+    chunk_size = globals.CHUNK_SIZE
     total_chunks = (len(data) + chunk_size - 1) // chunk_size
 
     for i in range(total_chunks):
@@ -167,6 +166,6 @@ def send_file(sock, app_state, to_user_id, filepath, description=""):
             "TOKEN": token,
             "DATA": base64.b64encode(chunk_data).decode("utf-8"),
         }
-        sock.sendto(build_message(chunk_msg).encode("utf-8"), (to_ip, 50999))
+        sock.sendto(build_message(chunk_msg).encode("utf-8"), (to_ip, globals.PORT))
 
     print(f"[SENT FILE] {filepath} ({filesize} bytes) to {to_user_id}")

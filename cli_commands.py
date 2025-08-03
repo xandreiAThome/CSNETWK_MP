@@ -183,6 +183,14 @@ def get_cli_commands(sock, app_state, globals):
         description = input("Optional file description: \n")
         send_file(sock, app_state, target_user_id, file_path, description)
 
+    def cmd_induce_loss_on():
+        globals.induce_loss = True
+        print("Induced packet loss ENABLED for Game and File messages.")
+
+    def cmd_induce_loss_off():
+        globals.induce_loss = False
+        print("Induced packet loss DISABLED for Game and File messages.")
+
     commands = {
         "exit": lambda: "__exit__",
         "help": cmd_help,
@@ -210,5 +218,7 @@ def get_cli_commands(sock, app_state, globals):
         "forfeit": cmd_forfeit,
         "accept_file": cmd_accept_file,
         "send_file": cmd_send_file,
+        "induce_loss_on": cmd_induce_loss_on,
+        "induce_loss_off": cmd_induce_loss_off,
     }
     return commands
