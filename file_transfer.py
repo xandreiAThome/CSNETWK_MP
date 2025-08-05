@@ -34,12 +34,13 @@ def handle_file_offer(message, app_state, sock, sender_ip):
     }
 
     sender_name = message["FROM"].split("@")[0]
-    print(f"\nUser {sender_name} is sending you a file: {message['FILENAME']} ({message['FILESIZE']} bytes)")
+    print(
+        f"\nUser {sender_name} is sending you a file: {message['FILENAME']} ({message['FILESIZE']} bytes)"
+    )
     print(f"Description: {message.get('DESCRIPTION', 'No description')}")
     print(f"To accept: accept_file('{file_id}')\n")
 
 
-def accept_file(file_id):
 def accept_file(file_id, app_state):
     if file_id not in app_state.pending_file_offers:
         print("No such file offer found.")
@@ -51,7 +52,7 @@ def accept_file(file_id, app_state):
         "filename": offer["filename"],
         "chunks": {},
         "total_chunks": None,
-        "accepted_time": time.time()
+        "accepted_time": time.time(),
     }
 
     print(f"Accepted file offer for {offer['filename']}")
@@ -107,7 +108,7 @@ def send_file_received(sock, from_id, to_id, file_id):
         "TO": to_id,
         "FILEID": file_id,
         "STATUS": "COMPLETE",
-        "TIMESTAMP": str(int(time.time()))
+        "TIMESTAMP": str(int(time.time())),
     }
     if "@" not in to_id or len(to_id.split("@")) < 2:
         print(f"Invalid user ID format for recipient: {to_id}")
@@ -161,7 +162,7 @@ def send_file(sock, app_state, to_user_id, filepath, description=""):
     total_chunks = (len(data) + chunk_size - 1) // chunk_size
 
     for i in range(total_chunks):
-        chunk_data = data[i * chunk_size: (i + 1) * chunk_size]
+        chunk_data = data[i * chunk_size : (i + 1) * chunk_size]
         chunk_msg = {
             "TYPE": "FILE_CHUNK",
             "FROM": app_state.user_id,
