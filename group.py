@@ -78,6 +78,9 @@ def handle_create_group(message: dict, app_state: AppState):
             app_state.joined_groups[group_id] = {
                 # empty for now, unless other properties may need to be tracked by members
             }
+    else:
+        if globals.verbose:
+            print("\n[ERROR]: TOKEN invalid\n")
 
 
 def update_group(
@@ -176,6 +179,9 @@ def handle_update_group(message: dict, app_state: AppState):
                 app_state.joined_groups[group_id] = {
                     # empty for now, unless other properties may need to be tracked by members
                 }
+    else:
+        if globals.verbose:
+            print("\n[ERROR]: TOKEN invalid\n")
 
 
 def group_message(sock: socket, group_id: str, content: str, app_state: AppState):
@@ -232,3 +238,6 @@ def handle_group_message(message: dict, app_state: AppState):
             print(f"Content      : {content}")
             print(f"Status       : RECEIVED\n")
         print(f'{user_id} sent "{content}"')
+    else:
+        if globals.verbose:
+            print("\n[ERROR]: TOKEN invalid\n")

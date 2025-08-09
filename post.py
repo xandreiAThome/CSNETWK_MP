@@ -82,3 +82,6 @@ def handle_post_message(message: dict, app_state: AppState):
                     "LIKED": 0,
                 }
             # print(app_state.received_posts)
+    else:
+        if globals.verbose:
+            print("\n[ERROR]: TOKEN invalid\n")

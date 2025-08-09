@@ -72,3 +72,6 @@ def handle_dm(
             print(f"Content      : {content}")
             print(f"Status       : RECEIVED\n")
         print(f"\n[DM] {display_name} chatted you: {content}", end="\n\n")
+    else:
+        if globals.verbose:
+            print("\n[ERROR]: TOKEN invalid\n")

@@ -121,3 +121,6 @@ def handle_like_message(message: dict, app_state: AppState):
             print(f"\n[UNLIKE] {display_name} unliked your post: {content}", end="\n\n")
             with app_state.lock:
                 app_state.sent_posts[original_post_timestamp]["LIKES"] -= 1
+    else:
+        if globals.verbose:
+            print("\n[ERROR]: TOKEN invalid\n")
