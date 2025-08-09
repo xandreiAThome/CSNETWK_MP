@@ -13,7 +13,7 @@ def send_post(sock: socket, content: str, app_state: AppState):
 
         message = {
             "TYPE": "POST",
-            "MESSAGE_ID": uuid.uuid4(),
+            "MESSAGE_ID": uuid.uuid4().hex[:16],
             "USER_ID": app_state.user_id,
             "CONTENT": content,
             "TTL": globals.POST_TTL,
@@ -82,3 +82,6 @@ def handle_post_message(message: dict, app_state: AppState):
                     "LIKED": 0,
                 }
             # print(app_state.received_posts)
+    else:
+        if globals.verbose:
+            print("\n[ERROR]: TOKEN invalid\n")
