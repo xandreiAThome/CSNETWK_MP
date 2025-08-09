@@ -1,6 +1,5 @@
 # like.py
 import socket
-import uuid
 import utils.globals as globals
 from datetime import datetime, timezone
 from utils import *

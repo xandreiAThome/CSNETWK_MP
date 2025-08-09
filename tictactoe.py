@@ -7,22 +7,24 @@ from utils import *
 import net_comms
 
 
-def send_invite(sock:socket, target_user_id:str, app_state: AppState, game_id, symbol):
+def send_invite(
+    sock: socket, target_user_id: str, app_state: AppState, game_id, symbol
+):
     # construct tictactoe invite message
     # send to target_ip via unicast UDP
-    try:   
+    try:
         target_user = app_state.peers[target_user_id]
         timestamp_now = datetime.now(timezone.utc).timestamp()
-        
+
         message = {
             "TYPE": "TICTACTOE_INVITE",
             "FROM": app_state.user_id,
             "TO": target_user_id,
             "GAMEID": game_id,
-            "MESSAGE_ID": str(uuid.uuid4()),     
-            "SYMBOL": symbol,   
+            "MESSAGE_ID": str(uuid.uuid4().hex[:16]),
+            "SYMBOL": symbol,
             "TIMESTAMP": timestamp_now,
-            "TOKEN": f'{app_state.user_id}|{timestamp_now + globals.TTL}|game'
+            "TOKEN": f"{app_state.user_id}|{timestamp_now + globals.TTL}|game",
         }
 
         # Store local game state
@@ -33,7 +35,7 @@ def send_invite(sock:socket, target_user_id:str, app_state: AppState, game_id, s
                 "board": [None] * 9,
                 "turn": 0,
                 "my_turn": True,
-                "status": "WAITING"
+                "status": "WAITING",
             }
 
         net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
@@ -49,9 +51,12 @@ def send_invite(sock:socket, target_user_id:str, app_state: AppState, game_id, s
             print(f"Symbol   : {symbol}")
             print(f"Token    : {message['TOKEN']}\n")
 
-        print(f'\n[TICTACTOE] You invited {target_user["display_name"]} to play Tic Tac Toe (Game ID: {game_id})\n')
+        print(
+            f'\n[TICTACTOE] You invited {target_user["display_name"]} to play Tic Tac Toe (Game ID: {game_id})\n'
+        )
     except KeyError as e:
-        print(f'\n[ERROR] invalid user_id | {e}', end='\n\n')
+        print(f"\n[ERROR] invalid user_id | {e}", end="\n\n")
+
 
 # Function to handle received invites
 def handle_invite(msg, app_state, sock, sender_ip):
@@ -76,8 +81,8 @@ def handle_invite(msg, app_state, sock, sender_ip):
         # Ignore repeated invites
         if game_id in app_state.active_games:
             print("Duplicate invite found.")
-            return  
-        
+            return
+
         # Store active game
         app_state.active_games[game_id] = {
             "opponent": sender,
@@ -85,26 +90,26 @@ def handle_invite(msg, app_state, sock, sender_ip):
             "board": [None] * 9,
             "turn": 0,
             "my_turn": False,
-            "status": "IN_PROGRESS"
+            "status": "IN_PROGRESS",
         }
 
-    
     net_comms.send_ack(sock, msg["MESSAGE_ID"], sender_ip, app_state)
-    
+
     print(f"\n[INVITE] {sender} invited you to play Tic Tac Toe (Game ID: {game_id})")
+
 
 # Function to send move to other user
 def move(sock: socket, target_user_id: str, app_state: AppState, game_id, position):
-    try:   
+    try:
         target_user = app_state.peers[target_user_id]
         timestamp_now = datetime.now(timezone.utc).timestamp()
-        message_id = uuid.uuid4()
+        message_id = uuid.uuid4().hex[:16]
 
         with app_state.lock:
             # Get active game
             game = app_state.active_games.get(game_id)
             if not game:
-                print(f'[ERROR] Game ID {game_id} not found.')
+                print(f"[ERROR] Game ID {game_id} not found.")
                 return
 
             if not game["my_turn"]:
@@ -128,14 +133,12 @@ def move(sock: socket, target_user_id: str, app_state: AppState, game_id, positi
             "FROM": app_state.user_id,
             "TO": target_user_id,
             "GAMEID": game_id,
-            "MESSAGE_ID": str(message_id),     
+            "MESSAGE_ID": str(message_id),
             "POSITION": position,
             "SYMBOL": symbol,
             "TURN": game["turn"],
-            "TOKEN": f'{app_state.user_id}|{timestamp_now + globals.TTL}|game'
+            "TOKEN": f"{app_state.user_id}|{timestamp_now + globals.TTL}|game",
         }
-
-        
 
         net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
         if globals.verbose:
@@ -152,7 +155,7 @@ def move(sock: socket, target_user_id: str, app_state: AppState, game_id, positi
             print(f"Turn      : {game['turn']}")
             print(f"Token     : {message['TOKEN']}\n")
 
-        print(f'\n[TICTACTOE] {game_id}: You moved to position {position}\n')
+        print(f"\n[TICTACTOE] {game_id}: You moved to position {position}\n")
 
         result = check_game_over(game["board"])
         if result:
@@ -167,8 +170,7 @@ def move(sock: socket, target_user_id: str, app_state: AppState, game_id, positi
                 send_result(sock, app_state, target_user_id, game_id, "WIN", result[1])
             del app_state.active_games[game_id]
     except KeyError as e:
-        print(f'\n[ERROR] Invalid user_id | {e}\n')
-        
+        print(f"\n[ERROR] Invalid user_id | {e}\n")
 
 
 # Function to process received move from other user
@@ -199,8 +201,8 @@ def handle_move(msg, app_state, sock, sender_ip):
     with app_state.lock:
         # Check if gameID and turn combination already exists
         if key in app_state.received_moves:
-            net_comms.send_ack(sock, message_id, sender_ip, app_state) # Send back ack
-            return  
+            net_comms.send_ack(sock, message_id, sender_ip, app_state)  # Send back ack
+            return
         game = app_state.active_games.get(game_id)
 
         # Create local game from scratch if game not found.
@@ -211,12 +213,10 @@ def handle_move(msg, app_state, sock, sender_ip):
                 "board": [None] * 9,
                 "turn": 0,
                 "my_turn": False,
-                "status": "IN_PROGRESS"
+                "status": "IN_PROGRESS",
             }
             app_state.active_games[game_id] = game
 
-        
-        
         # Check for invalid move
         if pos < 0 or pos > 8 or game["board"][pos] is not None:
             # Invalid move (e.g., cell taken), silently ignore
@@ -231,10 +231,7 @@ def handle_move(msg, app_state, sock, sender_ip):
 
     net_comms.send_ack(sock, message_id, sender_ip, app_state)
 
-    
-
     print(f"\n[MOVE] {msg['GAMEID']}: {sender} played {symbol} at {pos}")
-
 
     result = check_game_over(game["board"])
     if result:
@@ -247,8 +244,6 @@ def handle_move(msg, app_state, sock, sender_ip):
             game["status"] = "FINISHED"
             send_result(sock, app_state, sender, game_id, "LOSS", result[1])
         del app_state.active_games[game_id]
-    
-
 
 
 # Function to print the board
@@ -260,12 +255,18 @@ def print_board(board):
         print(f" {symbols[i]} | {symbols[i+1]} | {symbols[i+2]} ")
     print("\n")
 
+
 # Function to check game over
 def check_game_over(board):
     winning_lines = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],  # rows
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],  # cols
-        [0, 4, 8], [2, 4, 6]              # diagonals
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],  # rows
+        [0, 3, 6],
+        [1, 4, 7],
+        [2, 5, 8],  # cols
+        [0, 4, 8],
+        [2, 4, 6],  # diagonals
     ]
 
     for line in winning_lines:
@@ -278,11 +279,14 @@ def check_game_over(board):
 
     return None
 
-def send_result(sock, app_state: AppState, target_user_id, game_id, result, winning_line=None):
+
+def send_result(
+    sock, app_state: AppState, target_user_id, game_id, result, winning_line=None
+):
     try:
         target_user = app_state.peers[target_user_id]
         timestamp_now = datetime.now(timezone.utc).timestamp()
-        message_id = str(uuid.uuid4())
+        message_id = str(uuid.uuid4().hex[:16])
         symbol = app_state.active_games[game_id]["symbol"]
 
         message = {
@@ -293,13 +297,11 @@ def send_result(sock, app_state: AppState, target_user_id, game_id, result, winn
             "MESSAGE_ID": message_id,
             "RESULT": result,
             "SYMBOL": symbol,
-            "TIMESTAMP": timestamp_now
+            "TIMESTAMP": timestamp_now,
         }
 
         if winning_line:
             message["WINNING_LINE"] = ",".join(str(i) for i in winning_line)
-
-        
 
         net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
 
@@ -321,7 +323,13 @@ def send_result(sock, app_state: AppState, target_user_id, game_id, result, winn
     except KeyError as e:
         print(f"[ERROR] Can't send game result: {e}")
 
-def handle_result(msg, app_state: AppState, sock, sender_ip,):
+
+def handle_result(
+    msg,
+    app_state: AppState,
+    sock,
+    sender_ip,
+):
     game_id = msg["GAMEID"]
     result = msg["RESULT"]
     symbol = msg["SYMBOL"]

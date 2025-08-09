@@ -18,7 +18,7 @@ def send_follow(sock: socket, target_user_id: str, app_state: AppState):
 
         message = {
             "TYPE": "FOLLOW",
-            "MESSAGE_ID": uuid.uuid4(),
+            "MESSAGE_ID": uuid.uuid4().hex[:16],
             "FROM": app_state.user_id,
             "TO": target_user_id,
             "TIMESTAMP": timestamp_now,
@@ -75,7 +75,7 @@ def send_unfollow(sock: socket, target_user_id: str, app_state: AppState):
 
         message = {
             "TYPE": "UNFOLLOW",
-            "MESSAGE_ID": uuid.uuid4(),
+            "MESSAGE_ID": uuid.uuid4().hex[:16],
             "FROM": app_state.user_id,
             "TO": target_user_id,
             "TIMESTAMP": timestamp_now,

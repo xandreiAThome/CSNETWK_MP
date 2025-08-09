@@ -13,7 +13,7 @@ def send_post(sock: socket, content: str, app_state: AppState):
 
         message = {
             "TYPE": "POST",
-            "MESSAGE_ID": uuid.uuid4(),
+            "MESSAGE_ID": uuid.uuid4().hex[:16],
             "USER_ID": app_state.user_id,
             "CONTENT": content,
             "TTL": globals.POST_TTL,

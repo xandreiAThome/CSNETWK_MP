@@ -23,7 +23,7 @@ def send_dm(sock: socket, content: str, target_user_id: str, app_state: AppState
             "TO": target_user_id,
             "CONTENT": content,
             "TIMESTAMP": timestamp_now,
-            "MESSAGE_ID": str(uuid.uuid4()),
+            "MESSAGE_ID": str(uuid.uuid4().hex[:16]),
             "TOKEN": f"{app_state.user_id}|{timestamp_now + globals.TTL}|chat",
         }
 

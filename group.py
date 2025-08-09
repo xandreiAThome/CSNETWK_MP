@@ -15,7 +15,8 @@ def create_group(sock: socket, group_name: str, members: str, app_state: AppStat
         message = {
             "TYPE": "GROUP_CREATE",
             "FROM": app_state.user_id,
-            "GROUP_ID": group_name.lower().replace(" ", "_") + str(uuid.uuid4()),
+            "GROUP_ID": group_name.lower().replace(" ", "_")
+            + str(uuid.uuid4().hex[:16]),
             "GROUP_NAME": group_name,
             "MEMBERS": members,  # comma separated values
             "TIMESTAMP": timestamp_now,
