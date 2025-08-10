@@ -310,10 +310,14 @@ def handle_group_message(message: dict, app_state: AppState):
     content: str = message.get("CONTENT")
     user_id, timestamp_expire, scope = token.split("|")
     timestamp_expire = float(timestamp_expire)
-    group_name = (
-        app_state.owned_groups[group_id]["GROUP_NAME"]
-        or app_state.joined_groups[group_id]["GROUP_NAME"]
-    )
+
+    # Safely get group name from either owned or joined groups
+    if group_id in app_state.owned_groups:
+        group_name = app_state.owned_groups[group_id]["GROUP_NAME"]
+    elif group_id in app_state.joined_groups:
+        group_name = app_state.joined_groups[group_id]["GROUP_NAME"]
+    else:
+        group_name = "Unknown Group"
 
     part_of_group = (
         group_id in app_state.joined_groups or group_id in app_state.owned_groups
