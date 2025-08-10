@@ -89,7 +89,10 @@ def handle_create_group(message: dict, app_state: AppState):
 # mark self as added to a group
 def add_self(group_id: str, group_name: str, member_set: set, app_state: AppState):
     with app_state.lock:
-        app_state.joined_groups[group_id] = {"GROUP": group_name, "MEMBERS": member_set}
+        app_state.joined_groups[group_id] = {
+            "GROUP_NAME": group_name,
+            "MEMBERS": member_set,
+        }
 
 
 def update_group(
@@ -294,6 +297,7 @@ def group_message(sock: socket, group_id: str, content: str, app_state: AppState
             print(f"Group ID     : {group_id}")
             print(f"Content      : {content}")
             print(f"Status       : SENT\n")
+        print("Sent message to group")
     except KeyError as e:
         print(f"\n[ERROR] | {e}", end="\n\n")
 
@@ -306,8 +310,9 @@ def handle_group_message(message: dict, app_state: AppState):
     content: str = message.get("CONTENT")
     user_id, timestamp_expire, scope = token.split("|")
     timestamp_expire = float(timestamp_expire)
-    group_name = app_state.owned_groups.get(group_id) or app_state.joined_groups.get(
-        group_id
+    group_name = (
+        app_state.owned_groups[group_id]["GROUP_NAME"]
+        or app_state.joined_groups[group_id]["GROUP_NAME"]
     )
 
     part_of_group = (
