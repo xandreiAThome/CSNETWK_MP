@@ -39,7 +39,7 @@ python app.py <display_name> <user_name> [avatar_source_file]
 
 ## Task Distribution Table
 
-| Task/Role                               | Esponilla | Member 2 | Member 3 | Member 4 |
+| Task/Role                               | Esponilla |  Intino  | Mangubat |   Tan    |
 | --------------------------------------- | --------- | -------- | -------- | -------- |
 | **Network Communication**               |           |          |          |          |
 | UDP Socket Setup                        | Primary   |          |          |          |
@@ -48,13 +48,13 @@ python app.py <display_name> <user_name> [avatar_source_file]
 | **Core Feature Implementation**         |           |          |          |          |
 | Core Messaging (POST, DM, LIKE, FOLLOW) |           |          |          |          |
 | File Transfer (Offer, Chunk, ACK)       |           |          |          |          |
-| Tic Tac Toe Game (with recovery)        |           |          |          |          |
+| Tic Tac Toe Game (with recovery)        |           | Primary  |          |          |
 | Group Creation / Messaging              |           |          |          |          |
 | Induced Packet Loss (Game & File)       |           |          |          |          |
-| Acknowledgement / Retry                 |           |          |          |          |
+| Acknowledgement / Retry                 |           | Primary  |          |          |
 | **UI & Logging**                        |           |          |          |          |
 | Verbose Mode Support                    |           |          |          |          |
-| Terminal Grid Display                   |           |          |          |          |
+| Terminal Grid Display                   |           | Primary  |          |          |
 | Message Parsing & Debug Output          |           |          |          |          |
 | **Testing and Validation**              |           |          |          |          |
 | Inter-group Testing                     |           |          |          |          |
