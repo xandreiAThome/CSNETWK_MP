@@ -101,6 +101,12 @@ def update_group(
 ):
 
     try:
+        if group_id not in app_state.owned_groups:
+            print(
+                f"[ERROR] You do not own the group with ID '{group_id}'. Only the owner can update the group."
+            )
+            return
+
         timestamp_now = datetime.now(timezone.utc).timestamp()
 
         # Filter out self from members to remove.
@@ -126,9 +132,18 @@ def update_group(
             if member in member_set:
                 with app_state.lock:
                     member_set.remove(member)
+            else:
+                print(
+                    f"[ERROR] Member '{member}' is not in the group and cannot be removed."
+                )
         for member in members_append_list:
-            with app_state.lock:
-                member_set.add(member)
+            if member in member_set:
+                print(
+                    f"[ERROR] Member '{member}' is already in the group and cannot be added again."
+                )
+            else:
+                with app_state.lock:
+                    member_set.add(member)
 
         # only get members to add after removing and adding to current member set has been accomplished
         current_members: set = app_state.owned_groups[group_id].get("MEMBERS")
