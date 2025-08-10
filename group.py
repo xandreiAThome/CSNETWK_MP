@@ -289,6 +289,31 @@ def group_message(sock: socket, group_id: str, content: str, app_state: AppState
             build_message(message).encode("utf-8"),
             (app_state.broadcast_ip, globals.PORT),
         )
+
+        # Save sent group message to app state
+        # Get group name for the message
+        if group_id in app_state.owned_groups:
+            group_name = app_state.owned_groups[group_id]["GROUP_NAME"]
+        elif group_id in app_state.joined_groups:
+            group_name = app_state.joined_groups[group_id]["GROUP_NAME"]
+        else:
+            group_name = "Unknown Group"
+
+        with app_state.lock:
+            if group_id not in app_state.group_messages:
+                app_state.group_messages[group_id] = []
+            app_state.group_messages[group_id].append(
+                {
+                    "from": app_state.user_id,
+                    "group_id": group_id,
+                    "group_name": group_name,
+                    "content": content,
+                    "timestamp": timestamp_now,
+                    "direction": "sent",
+                    "token": message["TOKEN"],
+                }
+            )
+
         if globals.verbose:
             print(f"\n[SEND >]")
             print(f"Message Type : GROUP_MESSAGE")
@@ -325,6 +350,22 @@ def handle_group_message(message: dict, app_state: AppState):
 
     # only receive the message if within group scope and user is in the group
     if scope == "group" and timestamp_expire - timestamp_now > 0 and part_of_group:
+        # Save received group message to app state
+        with app_state.lock:
+            if group_id not in app_state.group_messages:
+                app_state.group_messages[group_id] = []
+            app_state.group_messages[group_id].append(
+                {
+                    "from": user_id,
+                    "group_id": group_id,
+                    "group_name": group_name,
+                    "content": content,
+                    "timestamp": timestamp_now,
+                    "direction": "received",
+                    "token": token,
+                }
+            )
+
         if globals.verbose:
             print(f"\n[RECV <]")
             print(f"Message Type : GROUP_MESSAGE")

@@ -30,6 +30,22 @@ def send_dm(sock: socket, content: str, target_user_id: str, app_state: AppState
         # sock.send(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))
 
         net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
+
+        # Save sent DM to app state
+        with app_state.lock:
+            if target_user_id not in app_state.dm_messages:
+                app_state.dm_messages[target_user_id] = []
+            app_state.dm_messages[target_user_id].append(
+                {
+                    "from": app_state.user_id,
+                    "to": target_user_id,
+                    "content": content,
+                    "timestamp": timestamp_now,
+                    "direction": "sent",
+                    "token": message["TOKEN"],
+                }
+            )
+
         if globals.verbose:
             print(f"\n[SEND >]")
             print(f"Message Type : DM")
@@ -65,6 +81,22 @@ def handle_dm(
     if timestamp_ttl - timestamp_now > 0 and scope == "chat":
         net_comms.send_ack(sock, message["MESSAGE_ID"], sender_ip, app_state)
         display_name = app_state.peers[user_id]["display_name"]
+
+        # Save received DM to app state
+        with app_state.lock:
+            if user_id not in app_state.dm_messages:
+                app_state.dm_messages[user_id] = []
+            app_state.dm_messages[user_id].append(
+                {
+                    "from": user_id,
+                    "to": app_state.user_id,
+                    "content": content,
+                    "timestamp": timestamp_now,
+                    "direction": "received",
+                    "token": message["TOKEN"],
+                }
+            )
+
         if globals.verbose:
             print(f"\n[RECV <]")
             print(f"Message Type : DM")

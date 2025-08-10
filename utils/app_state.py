@@ -34,6 +34,13 @@ class AppState:
     joined_groups: Dict[str, dict] = field(
         default_factory=dict
     )  # groups this client joined and doesn't own
+
+    # used for storing messages
+    dm_messages: Dict[str, list] = field(default_factory=dict)  # DM messages by user_id
+    group_messages: Dict[str, list] = field(
+        default_factory=dict
+    )  # Group messages by group_id
+
     # ACK
     pending_acks: Dict[str, dict] = field(default_factory=dict)
 
