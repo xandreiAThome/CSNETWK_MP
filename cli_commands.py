@@ -267,6 +267,15 @@ def get_cli_commands(sock, app_state, globals):
                     print(f"[{timestamp}] {from_user}: {content}")
         print()
 
+    def cmd_show_revoked_tokens():
+        print("\n[REVOKED TOKENS]")
+        if not app_state.revoked_token:
+            print("No revoked tokens.")
+            return
+        for msg_id, expiry in app_state.revoked_token.items():
+            print(f"Message ID: {msg_id} | Expiry: {expiry}")
+        print()
+
     commands = {
         # fmt: off
         "exit": lambda: "__exit__",
@@ -286,8 +295,8 @@ def get_cli_commands(sock, app_state, globals):
         "check_sent_posts": cmd_check_sent_posts,
         "check_dm_messages": cmd_check_dm_messages,
         "check_group_messages": cmd_check_group_messages,
-
         "revoke_dm_token": cmd_revoke_dm_token,
+        "show_revoked_tokens": cmd_show_revoked_tokens,
 
         "post": cmd_post,
         "dm": cmd_dm,
