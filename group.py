@@ -102,6 +102,9 @@ def update_group(
 
     try:
         if group_id not in app_state.owned_groups:
+            if group_id not in app_state.joined_groups:
+                print(f"[ERROR] The group ID '{group_id}' does not exist.")
+                return
             print(
                 f"[ERROR] You do not own the group with ID '{group_id}'. Only the owner can update the group."
             )
@@ -129,6 +132,8 @@ def update_group(
         )
 
         for member in members_remove_list:
+            if not member.strip():
+                continue
             if member in member_set:
                 with app_state.lock:
                     member_set.remove(member)
@@ -137,6 +142,8 @@ def update_group(
                     f"[ERROR] Member '{member}' is not in the group and cannot be removed."
                 )
         for member in members_append_list:
+            if not member.strip():
+                continue
             if member in member_set:
                 print(
                     f"[ERROR] Member '{member}' is already in the group and cannot be added again."
