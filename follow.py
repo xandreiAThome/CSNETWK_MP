@@ -45,9 +45,11 @@ def handle_follow_message(message: dict, app_state: AppState):
     # verify TIMESTAMP, TOKEN, etc.
     # update followers list
     timestamp_now = datetime.now(timezone.utc).timestamp()
-    token: str = message["TOKEN"]
-    user_id, timestamp_ttl, scope = token.split("|")
-    timestamp_ttl = float(timestamp_ttl)
+    token = parse_token(message["TOKEN"])
+
+    timestamp_ttl = token["TIMESTAMP_TTL"]
+    scope = token["SCOPE"]
+    user_id = token["USER_ID"]
 
     if timestamp_ttl - timestamp_now > 0 and scope == "follow":
         with app_state.lock:
