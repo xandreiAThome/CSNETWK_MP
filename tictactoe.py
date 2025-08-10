@@ -76,12 +76,19 @@ def handle_invite(msg, app_state, sock, sender_ip):
     if token:
         try:
             user_id, timestamp_expire, scope = token.split("|")
-            print(user_id + timestamp_expire + scope)
-            print(repr(timestamp_expire))
             timestamp_expire = float(timestamp_expire)
-            if scope != "game" or timestamp_expire - timestamp_now <= 0 or token in app_state.revoked_token:
+
+            if scope != "game" :
                 if globals.verbose:
-                    print("\n[ERROR]: TOKEN invalid\n")
+                    print("\n[ERROR]: Invalid Token Scope\n")
+                return
+            elif timestamp_expire - timestamp_now <= 0:
+                if globals.verbose:
+                    print(f"\n[ERROR]: {token} - Token Expired\n")
+                return
+            elif token in app_state.revoked_token:
+                if globals.verbose:
+                    print(f"\n[ERROR]: {token} - Token Revoked\n")
                 return
         except Exception:
             print(Exception)
@@ -224,11 +231,21 @@ def handle_move(msg, app_state, sock, sender_ip):
         try:
             user_id, timestamp_expire, scope = token.split("|")
             timestamp_expire = float(timestamp_expire)
-            if scope != "game" or timestamp_expire - timestamp_now <= 0 or token in app_state.revoked_token:
+
+            if scope != "game" :
                 if globals.verbose:
-                    print("\n[ERROR]: TOKEN invalid\n")
+                    print("\n[ERROR]: Invalid Token Scope\n")
+                return
+            elif timestamp_expire - timestamp_now <= 0:
+                if globals.verbose:
+                    print(f"\n[ERROR]: {token} - Token Expired\n")
+                return
+            elif token in app_state.revoked_token:
+                if globals.verbose:
+                    print(f"\n[ERROR]: {token} - Token Revoked\n")
                 return
         except Exception:
+            print(Exception)
             if globals.verbose:
                 print("\n[ERROR]: TOKEN malformed\n")
             return
