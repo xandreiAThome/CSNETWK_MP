@@ -211,7 +211,7 @@ def ack_resend_loop(sock, app_state):
                             print(f"\n[DROP !]")
                             print(f"MessageID    : {msg_id}")
                             print(f"Reason       : Max retries reached\n")
-                        print(f"[ACK] Gave up on {msg_id}")
+                        print(f"[RESEND !] Gave up on {msg_id}")
                         del app_state.pending_acks[msg_id]
                     else:
                         entry["retries"] += 1
@@ -221,8 +221,9 @@ def ack_resend_loop(sock, app_state):
                             (entry["destination"], globals.PORT),
                         )
                         if globals.verbose:
+                            msg_type = entry["message"].get("TYPE", "UNKNOWN")
                             print(f"\n[RESEND !]")
-                            print(f"Message Type : ACK")
+                            print(f"Message Type : {msg_type}")
                             print(
                                 f"Timestamp    : {datetime.now(timezone.utc).timestamp()}"
                             )
