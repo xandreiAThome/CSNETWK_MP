@@ -66,12 +66,19 @@ def handle_invite(msg, app_state, sock, sender_ip):
     symbol = "O" if msg["SYMBOL"] == "X" else "X"
     token = msg.get("TOKEN")
     timestamp_now = datetime.now(timezone.utc).timestamp()
+
+    # Validate sender ip
+    if sender.split("@", 1)[1] != sender_ip:
+        if globals.verbose:
+            print(f"[DROP !] FROM IP mismatch. packet_ip={sender_ip} from_field_ip={sender.split('@', 1)[1]}")
+        return
+
     # Token validity check
     if token:
         try:
             user_id, timestamp_expire, scope = token.split("|")
             timestamp_expire = float(timestamp_expire)
-            if scope != "game" or timestamp_expire - timestamp_now <= 0:
+            if scope != "game" or timestamp_expire - timestamp_now <= 0 or token in app_state.revoked_tokens:
                 if globals.verbose:
                     print("\n[ERROR]: TOKEN invalid\n")
                 return
@@ -79,6 +86,9 @@ def handle_invite(msg, app_state, sock, sender_ip):
             if globals.verbose:
                 print("\n[ERROR]: TOKEN malformed\n")
             return
+    else:
+        print("No token found")
+        return
 
     if globals.verbose:
         print(f"\n[RECV <]")
@@ -171,17 +181,15 @@ def move(sock: socket, target_user_id: str, app_state: AppState, game_id, positi
             print(f"Turn      : {game['turn']}")
             print(f"Token     : {message['TOKEN']}\n")
 
-        print(f"\n[TICTACTOE] {game_id}: You moved to position {position}\n")
+        print(f'\n[TICTACTOE] {game_id}: You moved to position {position}. Opponent\'s turn\n')
 
         result = check_game_over(game["board"])
         if result:
             print_board(board)
             if result == "DRAW":
-                print("\n[RESULT] It's a draw!")
                 game["status"] = "FINISHED"
                 send_result(sock, app_state, target_user_id, game_id, "DRAW")
             elif result[0] == "WIN":
-                print(f"\n[RESULT] You win! Line: {result[1]}")
                 game["status"] = "FINISHED"
                 send_result(sock, app_state, target_user_id, game_id, "WIN", result[1])
             del app_state.active_games[game_id]
@@ -201,12 +209,20 @@ def handle_move(msg, app_state, sock, sender_ip):
     key = (game_id, turn)
     token = msg.get("TOKEN")
     timestamp_now = datetime.now(timezone.utc).timestamp()
+    
+
+    # Validate sender ip
+    if sender.split("@", 1)[1] != sender_ip:
+        if globals.verbose:
+            print(f"[DROP !] FROM IP mismatch. packet_ip={sender_ip} from_field_ip={sender.split('@', 1)[1]}")
+        return
+    
     # Token validity check
     if token:
         try:
             user_id, timestamp_expire, scope = token.split("|")
             timestamp_expire = float(timestamp_expire)
-            if scope != "game" or timestamp_expire - timestamp_now <= 0:
+            if scope != "game" or timestamp_expire - timestamp_now <= 0 or token in app_state.revoked_tokens:
                 if globals.verbose:
                     print("\n[ERROR]: TOKEN invalid\n")
                 return
@@ -214,6 +230,9 @@ def handle_move(msg, app_state, sock, sender_ip):
             if globals.verbose:
                 print("\n[ERROR]: TOKEN malformed\n")
             return
+    else:
+        print("No token found")
+        return
 
     if globals.verbose:
         print(f"\n[RECV <]")
@@ -248,11 +267,15 @@ def handle_move(msg, app_state, sock, sender_ip):
             }
             app_state.active_games[game_id] = game
 
+        expected_turn = game["turn"] + 1
         # Check for invalid move
         if pos < 0 or pos > 8 or game["board"][pos] is not None:
-            # Invalid move (e.g., cell taken), silently ignore
-            send_ack(sock, message_id, sender_ip, app_state)
+            # Invalid move silently ignore
             return
+        
+        # Mismatch in turn sequence
+        if turn != expected_turn:
+            return  # silently ignore
 
         # Accept the move if it's valid
         game["board"][pos] = symbol
@@ -261,17 +284,16 @@ def handle_move(msg, app_state, sock, sender_ip):
         app_state.received_moves.add(key)
 
     net_comms.send_ack(sock, message_id, sender_ip, app_state)
+    
+    print_board(game["board"])
+    print(f"\n[MOVE] {msg['GAMEID']}: {sender} played {symbol} at {pos}. Your turn")
 
-    print(f"\n[MOVE] {msg['GAMEID']}: {sender} played {symbol} at {pos}")
-
+    
     result = check_game_over(game["board"])
     if result:
-        print_board(game["board"])
         if result == "DRAW":
-            print("\n[RESULT] It's a draw!")
             game["status"] = "FINISHED"
         elif result[0] == "WIN":
-            print(f"\n[RESULT] You lose! Line: {result[1]}")
             game["status"] = "FINISHED"
             send_result(sock, app_state, sender, game_id, "LOSS", result[1])
         del app_state.active_games[game_id]
@@ -347,8 +369,6 @@ def send_result(
             print(f"MessageID    : {message_id}")
             print(f"Result       : {result}")
             print(f"Symbol       : {symbol}")
-            if winning_line:
-                print(f"Winning Line : {winning_line}")
             print()
 
     except KeyError as e:
@@ -364,25 +384,15 @@ def handle_result(
     game_id = msg["GAMEID"]
     result = msg["RESULT"]
     symbol = msg["SYMBOL"]
-    winning_line = msg.get("WINNING_LINE")
     message_id = msg["MESSAGE_ID"]
 
-    token = msg.get("TOKEN")
     timestamp_now = datetime.now(timezone.utc).timestamp()
-    # Token validity check
-    if token:
-        try:
-            user_id, timestamp_expire, scope = token.split("|")
-            timestamp_expire = float(timestamp_expire)
-            if scope != "game" or timestamp_expire - timestamp_now <= 0:
-                if globals.verbose:
-                    print("\n[ERROR]: TOKEN invalid\n")
-                return
-        except Exception:
-            if globals.verbose:
-                print("\n[ERROR]: TOKEN malformed\n")
-            return
 
+    if msg["FROM"].split("@",1)[1] != sender_ip:
+        if globals.verbose:
+            print(f"[DROP !] FROM IP mismatch. packet_ip={sender_ip} from_field_ip={msg['FROM'].split('@',1)[1]}")
+        return
+    
     with app_state.lock:
         if game_id in app_state.active_games:
             del app_state.active_games[game_id]
@@ -398,15 +408,7 @@ def handle_result(
         print(f"MessageID    : {message_id}")
         print(f"Result       : {result}")
         print(f"Symbol       : {symbol}")
-        if winning_line:
-            print(f"Winning Line : {winning_line}")
         print()
 
     send_ack(sock, message_id, sender_ip, app_state)
 
-    if result == "FORFEIT":
-        print(f"\n[RESULT] {game_id}: {msg['FROM']} forfeited.")
-    else:
-        print(f"\n[RESULT] Game {game_id} ended. Result: {msg['FROM']} - {result}")
-        if winning_line:
-            print(f"Winning Line: {winning_line}")
