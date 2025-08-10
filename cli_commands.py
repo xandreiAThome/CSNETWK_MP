@@ -198,8 +198,8 @@ def get_cli_commands(sock, app_state, globals):
             print("Invalid input.")
             return
 
-        accept_file(file_id, app_state)
-        
+        accept_file(file_id, app_state, sock)
+
     def cmd_send_file():
         target_user_id = input("Enter target user id (e.g. bob@192.168.1.12): \n")
         file_path = input("Enter path to file to send: \n")
