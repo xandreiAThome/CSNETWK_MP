@@ -54,6 +54,7 @@ def send_dm(
                     "timestamp": timestamp_now,
                     "direction": "sent",
                     "token": message["TOKEN"],
+                    "message_id": message["MESSAGE_ID"],
                 }
             )
 
@@ -105,6 +106,7 @@ def handle_dm(
                     "timestamp": timestamp_now,
                     "direction": "received",
                     "token": message["TOKEN"],
+                    "message_id": message["MESSAGE_ID"],
                 }
             )
 
@@ -115,6 +117,7 @@ def handle_dm(
             print(f"From         : {user_id}")
             print(f"From IP      : {sender_ip}")
             print(f"Display Name : {display_name}")
+            print(f"Message Id : {message['MESSAGE_ID']}")
             print(f"Content      : {content}")
             print(f"Status       : RECEIVED\n")
         print(f"\n[DM] {display_name} chatted you: {content}", end="\n\n")
