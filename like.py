@@ -77,11 +77,14 @@ def send_like(sock: socket, action: str, post_timestamp: str, app_state: AppStat
 
 def handle_like_message(message: dict, app_state: AppState):
     # verify TIMESTAMP, TOKEN, etc.
-    timestamp_now = datetime.now(timezone.utc).timestamp()
+
     original_post_timestamp = message.get("POST_TIMESTAMP")
-    token: str = message["TOKEN"]
-    user_id, timestamp_ttl, scope = token.split("|")
-    timestamp_ttl = float(timestamp_ttl)
+    timestamp_now = datetime.now(timezone.utc).timestamp()
+    token = parse_token(message["TOKEN"])
+
+    timestamp_ttl = token["TIMESTAMP_TTL"]
+    scope = token["SCOPE"]
+    user_id = token["USER_ID"]
 
     if (
         timestamp_ttl - timestamp_now > 0

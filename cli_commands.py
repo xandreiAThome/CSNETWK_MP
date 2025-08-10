@@ -173,27 +173,33 @@ def get_cli_commands(sock, app_state, globals):
             del app_state.active_games[game_id]
 
     commands = {
+        # fmt: off
         "exit": lambda: "__exit__",
         "help": cmd_help,
         "verbose": cmd_verbose,
         "broadcast_verbose": cmd_broadcast_verbose,
+
         "follow": cmd_follow,
         "unfollow": cmd_unfollow,
+
         "check_followers": cmd_check_followers,
         "check_peers": cmd_check_peers,
         "check_following": cmd_check_following,
-        "post": cmd_post,
-        "dm": cmd_dm,
-        "like": cmd_like,
-        "unlike": cmd_unlike,
-        "create_group": cmd_create_group,
-        "update_group": cmd_update_group,
         "check_groups_owned": cmd_check_groups_owned,
         "check_groups": cmd_check_groups,
         "check_received_posts": cmd_check_received_posts,
         "check_sent_posts": cmd_check_sent_posts,
+
+        "post": cmd_post,
+        "dm": cmd_dm,
+        "like": cmd_like,
+        "unlike": cmd_unlike,
+
+        "create_group": cmd_create_group,
+        "update_group": cmd_update_group,
         "message_group": cmd_message_group,
         "group_message": cmd_message_group,
+        
         "invite_ttt": cmd_invite_ttt,
         "move": cmd_move,
         "forfeit": cmd_forfeit,

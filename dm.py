@@ -52,11 +52,14 @@ def handle_dm(
     sender_ip: str,
 ):
     # verify TIMESTAMP, TOKEN, etc.
-    timestamp_now = datetime.now(timezone.utc).timestamp()
-    token: str = message["TOKEN"]
-    user_id, timestamp_ttl, scope = token.split("|")
-    timestamp_ttl = float(timestamp_ttl)
+
     content: str = message["CONTENT"]
+    timestamp_now = datetime.now(timezone.utc).timestamp()
+    token = parse_token(message["TOKEN"])
+
+    timestamp_ttl = token["TIMESTAMP_TTL"]
+    scope = token["SCOPE"]
+    user_id = token["USER_ID"]
 
     # only receive the message within TTL and chat scope
     if timestamp_ttl - timestamp_now > 0 and scope == "chat":
