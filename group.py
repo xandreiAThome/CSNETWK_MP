@@ -306,6 +306,9 @@ def handle_group_message(message: dict, app_state: AppState):
     content: str = message.get("CONTENT")
     user_id, timestamp_expire, scope = token.split("|")
     timestamp_expire = float(timestamp_expire)
+    group_name = app_state.owned_groups.get(group_id) or app_state.joined_groups.get(
+        group_id
+    )
 
     part_of_group = (
         group_id in app_state.joined_groups or group_id in app_state.owned_groups
@@ -321,7 +324,7 @@ def handle_group_message(message: dict, app_state: AppState):
             print(f"Group ID     : {group_id}")
             print(f"Content      : {content}")
             print(f"Status       : RECEIVED\n")
-        print(f'{user_id} sent "{content}"')
+        print(f'[Group: {group_name}] {user_id} sent "{content}"')
     else:
         if globals.verbose:
             print("\n[ERROR]: TOKEN invalid\n")
