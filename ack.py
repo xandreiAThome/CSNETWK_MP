@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 import time
 from utils.app_state import AppState
 from utils.utils import build_message
+from utils import globals
 
 
 def send_with_ack(sock, message: dict, app_state: AppState, ip: str):
