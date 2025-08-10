@@ -13,7 +13,7 @@ def send_post(sock: socket, content: str, app_state: AppState):
 
         message = {
             "TYPE": "POST",
-            "MESSAGE_ID": uuid.uuid4(),
+            "MESSAGE_ID": uuid.uuid4().hex[:16],
             "USER_ID": app_state.user_id,
             "CONTENT": content,
             "TTL": globals.POST_TTL,
@@ -23,8 +23,15 @@ def send_post(sock: socket, content: str, app_state: AppState):
 
         # add to dictionary of sent posts
         with app_state.lock:
-            app_state.sent_posts[str(message.get("TIMESTAMP"))] = message
-            app_state.sent_posts[str(message.get("TIMESTAMP"))]["LIKES"] = 0
+            app_state.sent_posts[str(message.get("TIMESTAMP"))] = {
+                **message,
+                "LIKES": 0,
+                "TOKEN": {
+                    "USER_ID": app_state.user_id,
+                    "TIMESTAMP_TTL": timestamp_now + globals.POST_TTL,
+                    "SCOPE": "broadcast",
+                },
+            }
 
         # print(app_state.sent_posts)
 
@@ -48,11 +55,13 @@ def send_post(sock: socket, content: str, app_state: AppState):
 def handle_post_message(message: dict, app_state: AppState):
     # verify TIMESTAMP, TOKEN, etc.
 
-    timestamp_now = datetime.now(timezone.utc).timestamp()
-    token: str = message["TOKEN"]
     post_timestamp: str = message["TIMESTAMP"]
-    user_id, timestamp_ttl, scope = token.split("|")
-    timestamp_ttl = float(timestamp_ttl)
+    timestamp_now = datetime.now(timezone.utc).timestamp()
+    token = parse_token(message["TOKEN"])
+
+    timestamp_ttl = token["TIMESTAMP_TTL"]
+    scope = token["SCOPE"]
+    user_id = token["USER_ID"]
 
     # only receive post if sender broadcasting is being followed
     if user_id in app_state.following:
@@ -77,8 +86,11 @@ def handle_post_message(message: dict, app_state: AppState):
 
             with app_state.lock:
                 app_state.received_posts[post_timestamp] = {
-                    "USER_ID": user_id,
-                    "CONTENT": content,
+                    **message,
                     "LIKED": 0,
+                    "TOKEN": token,
                 }
             # print(app_state.received_posts)
+    else:
+        if globals.verbose:
+            print("\n[ERROR]: TOKEN invalid\n")
