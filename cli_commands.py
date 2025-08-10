@@ -172,6 +172,56 @@ def get_cli_commands(sock, app_state, globals):
         with app_state.lock:
             del app_state.active_games[game_id]
 
+    def cmd_check_dm_messages():
+        target_user_id = input("Enter user ID to view DM conversation: \n")
+
+        if target_user_id not in app_state.dm_messages:
+            print(f"No DM conversation found with {target_user_id}")
+            print()
+            return
+
+        messages = app_state.dm_messages[target_user_id]
+        print(f"\n[DM CONVERSATION WITH {target_user_id}]")
+
+        for msg in messages:
+            timestamp = msg.get("timestamp", "Unknown time")
+            direction = msg.get("direction", "unknown")
+            content = msg.get("content", "")
+            from_user = msg.get("from", "Unknown")
+
+            if direction == "sent":
+                print(f"[{timestamp}] You: {content}")
+            else:
+                print(f"[{timestamp}] {from_user}: {content}")
+        print()
+
+    def cmd_check_group_messages():
+        target_group_id = input("Enter group ID to view group conversation: \n")
+
+        if target_group_id not in app_state.group_messages:
+            print(f"No group conversation found with group ID {target_group_id}")
+            print()
+            return
+
+        messages = app_state.group_messages[target_group_id]
+        group_name = "Unknown Group"
+        if messages:
+            group_name = messages[0].get("group_name", "Unknown Group")
+
+        print(f"\n[GROUP CONVERSATION: {group_name} (ID: {target_group_id})]")
+
+        for msg in messages:
+            timestamp = msg.get("timestamp", "Unknown time")
+            direction = msg.get("direction", "unknown")
+            content = msg.get("content", "")
+            from_user = msg.get("from", "Unknown")
+
+            if direction == "sent":
+                print(f"[{timestamp}] You: {content}")
+            else:
+                print(f"[{timestamp}] {from_user}: {content}")
+        print()
+
     commands = {
         # fmt: off
         "exit": lambda: "__exit__",
@@ -189,6 +239,8 @@ def get_cli_commands(sock, app_state, globals):
         "check_groups": cmd_check_groups,
         "check_received_posts": cmd_check_received_posts,
         "check_sent_posts": cmd_check_sent_posts,
+        "check_dm_messages": cmd_check_dm_messages,
+        "check_group_messages": cmd_check_group_messages,
 
         "post": cmd_post,
         "dm": cmd_dm,
