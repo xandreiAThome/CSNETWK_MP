@@ -184,15 +184,18 @@ def get_cli_commands(sock, app_state, globals):
         print(f"\n[DM CONVERSATION WITH {target_user_id}]")
 
         for msg in messages:
-            timestamp = msg.get("timestamp", "Unknown time")
-            direction = msg.get("direction", "unknown")
-            content = msg.get("content", "")
-            from_user = msg.get("from", "Unknown")
-
-            if direction == "sent":
-                print(f"[{timestamp}] You: {content}")
+            if globals.verbose:
+                pprint(msg)
             else:
-                print(f"[{timestamp}] {from_user}: {content}")
+                timestamp = msg.get("timestamp", "Unknown time")
+                direction = msg.get("direction", "unknown")
+                content = msg.get("content", "")
+                from_user = msg.get("from", "Unknown")
+
+                if direction == "sent":
+                    print(f"[{timestamp}] You: {content}")
+                else:
+                    print(f"[{timestamp}] {from_user}: {content}")
         print()
 
     def cmd_check_group_messages():
@@ -211,15 +214,18 @@ def get_cli_commands(sock, app_state, globals):
         print(f"\n[GROUP CONVERSATION: {group_name} (ID: {target_group_id})]")
 
         for msg in messages:
-            timestamp = msg.get("timestamp", "Unknown time")
-            direction = msg.get("direction", "unknown")
-            content = msg.get("content", "")
-            from_user = msg.get("from", "Unknown")
-
-            if direction == "sent":
-                print(f"[{timestamp}] You: {content}")
+            if globals.verbose:
+                pprint(msg)
             else:
-                print(f"[{timestamp}] {from_user}: {content}")
+                timestamp = msg.get("timestamp", "Unknown time")
+                direction = msg.get("direction", "unknown")
+                content = msg.get("content", "")
+                from_user = msg.get("from", "Unknown")
+
+                if direction == "sent":
+                    print(f"[{timestamp}] You: {content}")
+                else:
+                    print(f"[{timestamp}] {from_user}: {content}")
         print()
 
     commands = {
