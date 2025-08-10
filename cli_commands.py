@@ -9,6 +9,45 @@ from tictactoe import move, send_invite, print_board, send_result
 
 
 def get_cli_commands(sock, app_state, globals):
+
+    def cmd_custom_dm_token():
+        target_user = input("Enter target user id: \n")
+        dm_content = input("Enter message content: \n")
+        token = input("Enter custom token: \n")
+        send_dm(sock, dm_content, target_user, app_state, token)
+
+    def cmd_revoke_dm_token():
+        message_id = input("Enter DM message_id to revoke token: \n")
+        found = False
+        for user_id, messages in app_state.dm_messages.items():
+            for msg in messages:
+                if (
+                    msg.get("message_id") == message_id
+                    or msg.get("MESSAGE_ID") == message_id
+                ):
+                    token = msg.get("token")
+                    if not token:
+                        print(f"No token found for message_id {message_id}.")
+                        return
+                    # Parse token to get expiry
+                    try:
+                        parts = token.split("|")
+                        if len(parts) < 2:
+                            print(f"Malformed token for message_id {message_id}.")
+                            return
+                        expiry = float(parts[1])
+                        app_state.revoked_token[message_id] = expiry
+                        print(
+                            f"Revoked token for message_id {message_id} (expires at {expiry})."
+                        )
+                        found = True
+                        return
+                    except Exception as e:
+                        print(f"Error parsing token: {e}")
+                        return
+        if not found:
+            print(f"No DM message found with message_id {message_id}.")
+
     def cmd_help():
         print("\nAvailable commands:")
         for cmd in sorted(commands.keys()):
@@ -228,6 +267,15 @@ def get_cli_commands(sock, app_state, globals):
                     print(f"[{timestamp}] {from_user}: {content}")
         print()
 
+    def cmd_show_revoked_tokens():
+        print("\n[REVOKED TOKENS]")
+        if not app_state.revoked_token:
+            print("No revoked tokens.")
+            return
+        for msg_id, expiry in app_state.revoked_token.items():
+            print(f"Message ID: {msg_id} | Expiry: {expiry}")
+        print()
+
     commands = {
         # fmt: off
         "exit": lambda: "__exit__",
@@ -247,11 +295,14 @@ def get_cli_commands(sock, app_state, globals):
         "check_sent_posts": cmd_check_sent_posts,
         "check_dm_messages": cmd_check_dm_messages,
         "check_group_messages": cmd_check_group_messages,
+        "revoke_dm_token": cmd_revoke_dm_token,
+        "show_revoked_tokens": cmd_show_revoked_tokens,
 
         "post": cmd_post,
         "dm": cmd_dm,
         "like": cmd_like,
         "unlike": cmd_unlike,
+        "custom_dm_token": cmd_custom_dm_token,
 
         "create_group": cmd_create_group,
         "update_group": cmd_update_group,

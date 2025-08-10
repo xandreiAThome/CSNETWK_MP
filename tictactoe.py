@@ -5,6 +5,7 @@ import utils.globals as globals
 from datetime import datetime, timezone
 from utils import *
 import net_comms
+from ack import send_ack, send_with_ack
 
 
 def send_invite(
@@ -38,7 +39,7 @@ def send_invite(
                 "status": "WAITING",
             }
 
-        net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
+        send_with_ack(sock, message, app_state, target_user["ip"])
         if globals.verbose:
             print(f"\n[SEND >]")
             print(f"Message Type: TICTACTOE_INVITE")
@@ -93,7 +94,7 @@ def handle_invite(msg, app_state, sock, sender_ip):
             "status": "IN_PROGRESS",
         }
 
-    net_comms.send_ack(sock, msg["MESSAGE_ID"], sender_ip, app_state)
+    send_ack(sock, msg["MESSAGE_ID"], sender_ip, app_state)
 
     print(f"\n[INVITE] {sender} invited you to play Tic Tac Toe (Game ID: {game_id})")
 
@@ -140,7 +141,7 @@ def move(sock: socket, target_user_id: str, app_state: AppState, game_id, positi
             "TOKEN": f"{app_state.user_id}|{timestamp_now + globals.TTL}|game",
         }
 
-        net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
+        send_with_ack(sock, message, app_state, target_user["ip"])
         if globals.verbose:
             print(f"\n[SEND >]")
             print(f"Message Type: TICTACTOE_MOVE")
@@ -201,7 +202,7 @@ def handle_move(msg, app_state, sock, sender_ip):
     with app_state.lock:
         # Check if gameID and turn combination already exists
         if key in app_state.received_moves:
-            net_comms.send_ack(sock, message_id, sender_ip, app_state)  # Send back ack
+            send_ack(sock, message_id, sender_ip, app_state)  # Send back ack
             return
         game = app_state.active_games.get(game_id)
 
@@ -220,7 +221,7 @@ def handle_move(msg, app_state, sock, sender_ip):
         # Check for invalid move
         if pos < 0 or pos > 8 or game["board"][pos] is not None:
             # Invalid move (e.g., cell taken), silently ignore
-            net_comms.send_ack(sock, message_id, sender_ip, app_state)
+            send_ack(sock, message_id, sender_ip, app_state)
             return
 
         # Accept the move if it's valid
@@ -303,7 +304,7 @@ def send_result(
         if winning_line:
             message["WINNING_LINE"] = ",".join(str(i) for i in winning_line)
 
-        net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
+        send_with_ack(sock, message, app_state, target_user["ip"])
 
         if globals.verbose:
             print(f"\n[SEND >]")
@@ -355,7 +356,7 @@ def handle_result(
             print(f"Winning Line : {winning_line}")
         print()
 
-    net_comms.send_ack(sock, message_id, sender_ip, app_state)
+    send_ack(sock, message_id, sender_ip, app_state)
 
     if result == "FORFEIT":
         print(f"\n[RESULT] {game_id}: {msg['FROM']} forfeited.")

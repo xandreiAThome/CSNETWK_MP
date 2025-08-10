@@ -2,6 +2,7 @@
 import socket
 import uuid
 import net_comms
+from ack import send_ack, send_with_ack
 import utils.globals as globals
 from datetime import datetime, timezone
 from utils import *
@@ -9,7 +10,13 @@ from utils import *
 
 # todo: may need to bind different clients to different ports to ensure direct
 # messages are properly received.
-def send_dm(sock: socket, content: str, target_user_id: str, app_state: AppState):
+def send_dm(
+    sock: socket,
+    content: str,
+    target_user_id: str,
+    app_state: AppState,
+    custom_token=None,
+):
     try:
         # sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # construct DM
@@ -24,12 +31,16 @@ def send_dm(sock: socket, content: str, target_user_id: str, app_state: AppState
             "CONTENT": content,
             "TIMESTAMP": timestamp_now,
             "MESSAGE_ID": str(uuid.uuid4().hex[:16]),
-            "TOKEN": f"{app_state.user_id}|{timestamp_now + globals.TTL}|chat",
+            "TOKEN": (
+                custom_token
+                if custom_token
+                else f"{app_state.user_id}|{timestamp_now + globals.TTL}|chat"
+            ),
         }
 
         # sock.send(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))
 
-        net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
+        send_with_ack(sock, message, app_state, target_user["ip"])
 
         # Save sent DM to app state
         with app_state.lock:
@@ -43,6 +54,7 @@ def send_dm(sock: socket, content: str, target_user_id: str, app_state: AppState
                     "timestamp": timestamp_now,
                     "direction": "sent",
                     "token": message["TOKEN"],
+                    "message_id": message["MESSAGE_ID"],
                 }
             )
 
@@ -79,7 +91,7 @@ def handle_dm(
 
     # only receive the message within TTL and chat scope
     if timestamp_ttl - timestamp_now > 0 and scope == "chat":
-        net_comms.send_ack(sock, message["MESSAGE_ID"], sender_ip, app_state)
+        send_ack(sock, message["MESSAGE_ID"], sender_ip, app_state)
         display_name = app_state.peers[user_id]["display_name"]
 
         # Save received DM to app state
@@ -94,6 +106,7 @@ def handle_dm(
                     "timestamp": timestamp_now,
                     "direction": "received",
                     "token": message["TOKEN"],
+                    "message_id": message["MESSAGE_ID"],
                 }
             )
 
@@ -104,6 +117,7 @@ def handle_dm(
             print(f"From         : {user_id}")
             print(f"From IP      : {sender_ip}")
             print(f"Display Name : {display_name}")
+            print(f"Message Id : {message['MESSAGE_ID']}")
             print(f"Content      : {content}")
             print(f"Status       : RECEIVED\n")
         print(f"\n[DM] {display_name} chatted you: {content}", end="\n\n")
