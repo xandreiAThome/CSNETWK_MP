@@ -61,6 +61,24 @@ def send_profile(sock: socket, status: str, app_state: AppState):
         print(f"\n")
 
 
+def handle_ping(msg: dict, addr: str, app_state: AppState):
+    user_id = msg.get("USER_ID")
+
+    if globals.broadcast_verbose:
+        print(f"\n[RECV <]")
+        print(f"Message Type : PING")
+        print(f"Timestamp    : {datetime.now(timezone.utc).timestamp()}")
+        print(f"From IP      : {addr}")
+        print(f"User ID      : {user_id}\n")
+
+    # Update last_seen timestamp for existing peers
+    if user_id in app_state.peers:
+        with app_state.lock:
+            app_state.peers[user_id]["last_seen"] = datetime.now(
+                timezone.utc
+            ).timestamp()
+
+
 def handle_profile(msg: dict, addr: str, app_state: AppState):
     display_name = msg.get("DISPLAY_NAME", "Unknown")
     user_id = msg.get("USER_ID")
@@ -136,6 +154,7 @@ def listener_loop(sock: socket, app_state: AppState):
             # discovery
             # only send profile if interval has passed, pings just trigger the check
             if msg_type == "PING":
+                handle_ping(msg, addr[0], app_state)
                 now = time.time()
                 if (now - last_profile_time) > min_profile_interval:
                     send_profile(sock, "BROADCASTING", app_state)
@@ -146,22 +165,6 @@ def listener_loop(sock: socket, app_state: AppState):
 
             # handle cases where the message uses USER_ID instead of FROM
             # failure to handle such cases used to result in errors trying to parse Nonetype
-
-            # msg_from = msg.get("FROM")
-            # msg_user_id = msg.get("USER_ID")
-
-            # if not (msg_from is None):
-            #     username, user_ip = msg.get("FROM").split('@')
-            # elif not (msg_user_id is None):
-            #     username, user_ip = msg.get("USER_ID").split('@')
-
-            # check for core feature msgs that the ip hasnt been spoofed
-            # I am crying from the fact that the format of msgs are inconsistent
-            # some only have user_id and others have FROM which basically is the user_id of the sender
-            # so I need to seperate the if else of PING AND PROFILE from the rest of the msg_types
-            # REMINDER that POST also has user_id instead of FROM :-(
-            # if user_ip != addr[0]:
-            #     continue
 
             elif msg.get("FROM") == app_state.user_id:
                 continue  # Message is from self again, curse the msg formats
@@ -228,6 +231,27 @@ def ack_resend_loop(sock, app_state):
                             print(f"Retry Count  : {entry['retries']}")
                             print(f"Destination  : {entry['destination']}\n")
                         print(f"[RESEND] Retried {msg_id}")
+
+
+def peer_cleanup_loop(app_state):
+    """Remove inactive peers that haven't been seen within TTL seconds"""
+    while True:
+        time.sleep(globals.TTL // 2)  # Check every 30 seconds (half of TTL)
+        current_time = datetime.now(timezone.utc).timestamp()
+
+        with app_state.lock:
+            inactive_peers = []
+            for user_id, peer_data in app_state.peers.items():
+                if current_time - peer_data["last_seen"] > globals.TTL:
+                    inactive_peers.append(user_id)
+
+            for user_id in inactive_peers:
+                peer_data = app_state.peers[user_id]
+                print(
+                    f"\n[CLEANUP] Removed inactive peer: {peer_data['display_name']} [{user_id}]",
+                    end="\n\n",
+                )
+                del app_state.peers[user_id]
 
 
 # Send message requiring ACK
