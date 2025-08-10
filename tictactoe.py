@@ -64,11 +64,26 @@ def handle_invite(msg, app_state, sock, sender_ip):
     game_id = msg["GAMEID"]
     sender = msg["FROM"]
     symbol = "O" if msg["SYMBOL"] == "X" else "X"
+    token = msg.get("TOKEN")
+    timestamp_now = datetime.now(timezone.utc).timestamp()
+    # Token validity check
+    if token:
+        try:
+            user_id, timestamp_expire, scope = token.split("|")
+            timestamp_expire = float(timestamp_expire)
+            if scope != "game" or timestamp_expire - timestamp_now <= 0:
+                if globals.verbose:
+                    print("\n[ERROR]: TOKEN invalid\n")
+                return
+        except Exception:
+            if globals.verbose:
+                print("\n[ERROR]: TOKEN malformed\n")
+            return
 
     if globals.verbose:
         print(f"\n[RECV <]")
         print(f"Message Type : TICTACTOE_INVITE")
-        print(f"Timestamp    : {datetime.now(timezone.utc).timestamp()}")
+        print(f"Timestamp    : {timestamp_now}")
         print(f"From IP      : {sender_ip}")
         print(f"From         : {msg['FROM']}")
         print(f"To           : {msg['TO']}")
@@ -184,11 +199,26 @@ def handle_move(msg, app_state, sock, sender_ip):
     message_id = msg["MESSAGE_ID"]
 
     key = (game_id, turn)
+    token = msg.get("TOKEN")
+    timestamp_now = datetime.now(timezone.utc).timestamp()
+    # Token validity check
+    if token:
+        try:
+            user_id, timestamp_expire, scope = token.split("|")
+            timestamp_expire = float(timestamp_expire)
+            if scope != "game" or timestamp_expire - timestamp_now <= 0:
+                if globals.verbose:
+                    print("\n[ERROR]: TOKEN invalid\n")
+                return
+        except Exception:
+            if globals.verbose:
+                print("\n[ERROR]: TOKEN malformed\n")
+            return
 
     if globals.verbose:
         print(f"\n[RECV <]")
         print(f"Message Type : TICTACTOE_MOVE")
-        print(f"Timestamp    : {datetime.now(timezone.utc).timestamp()}")
+        print(f"Timestamp    : {timestamp_now}")
         print(f"From IP      : {sender_ip}")
         print(f"From         : {msg['FROM']}")
         print(f"To           : {msg['TO']}")
@@ -337,6 +367,22 @@ def handle_result(
     winning_line = msg.get("WINNING_LINE")
     message_id = msg["MESSAGE_ID"]
 
+    token = msg.get("TOKEN")
+    timestamp_now = datetime.now(timezone.utc).timestamp()
+    # Token validity check
+    if token:
+        try:
+            user_id, timestamp_expire, scope = token.split("|")
+            timestamp_expire = float(timestamp_expire)
+            if scope != "game" or timestamp_expire - timestamp_now <= 0:
+                if globals.verbose:
+                    print("\n[ERROR]: TOKEN invalid\n")
+                return
+        except Exception:
+            if globals.verbose:
+                print("\n[ERROR]: TOKEN malformed\n")
+            return
+
     with app_state.lock:
         if game_id in app_state.active_games:
             del app_state.active_games[game_id]
@@ -344,7 +390,7 @@ def handle_result(
     if globals.verbose:
         print(f"\n[RECV <]")
         print(f"Message Type : TICTACTOE_RESULT")
-        print(f"Timestamp    : {datetime.now(timezone.utc).timestamp()}")
+        print(f"Timestamp    : {timestamp_now}")
         print(f"From IP      : {sender_ip}")
         print(f"From         : {msg['FROM']}")
         print(f"To           : {msg['TO']}")
