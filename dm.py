@@ -2,6 +2,7 @@
 import socket
 import uuid
 import net_comms
+from ack import send_ack, send_with_ack
 import utils.globals as globals
 from datetime import datetime, timezone
 from utils import *
@@ -29,7 +30,7 @@ def send_dm(sock: socket, content: str, target_user_id: str, app_state: AppState
 
         # sock.send(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))
 
-        net_comms.send_with_ack(sock, message, app_state, target_user["ip"])
+        send_with_ack(sock, message, app_state, target_user["ip"])
 
         # Save sent DM to app state
         with app_state.lock:
@@ -79,7 +80,7 @@ def handle_dm(
 
     # only receive the message within TTL and chat scope
     if timestamp_ttl - timestamp_now > 0 and scope == "chat":
-        net_comms.send_ack(sock, message["MESSAGE_ID"], sender_ip, app_state)
+        send_ack(sock, message["MESSAGE_ID"], sender_ip, app_state)
         display_name = app_state.peers[user_id]["display_name"]
 
         # Save received DM to app state
