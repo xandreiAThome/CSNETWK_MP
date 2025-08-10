@@ -77,7 +77,7 @@ def handle_profile(msg: dict, addr: str, app_state: AppState):
 
     if user_id not in app_state.peers:
         print(
-            f"\n[PROFILE] (Detected User) {display_name}[{user_id}]: {status}",
+            f"\n[PROFILE] (Detected User) {display_name} [{user_id}]: {status}",
             end="\n\n",
         )
     # Avatar is optional — we ignore AVATAR_* if unsupported

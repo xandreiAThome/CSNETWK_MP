@@ -23,8 +23,15 @@ def send_post(sock: socket, content: str, app_state: AppState):
 
         # add to dictionary of sent posts
         with app_state.lock:
-            app_state.sent_posts[str(message.get("TIMESTAMP"))] = message
-            app_state.sent_posts[str(message.get("TIMESTAMP"))]["LIKES"] = 0
+            app_state.sent_posts[str(message.get("TIMESTAMP"))] = {
+                **message,
+                "LIKES": 0,
+                "TOKEN": {
+                    "USER_ID": app_state.user_id,
+                    "TIMESTAMP_TTL": timestamp_now + globals.POST_TTL,
+                    "SCOPE": "broadcast",
+                },
+            }
 
         # print(app_state.sent_posts)
 
