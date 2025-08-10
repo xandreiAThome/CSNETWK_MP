@@ -14,7 +14,7 @@ def get_cli_commands(sock, app_state, globals):
         target_user = input("Enter target user id: \n")
         dm_content = input("Enter message content: \n")
         token = input("Enter custon token: \n")
-        send_dm(sock, dm_content, target_user, app_state)
+        send_dm(sock, dm_content, target_user, app_state, token)
 
     def cmd_revoke_dm_token():
         message_id = input("Enter DM message_id to revoke token: \n")
