@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import socket
 import time
+import random
 from utils import *
 import utils.globals as globals
 from follow import handle_follow_message, handle_unfollow_message
@@ -117,7 +118,7 @@ def listener_loop(sock: socket, app_state: AppState):
                 "FILE_CHUNK",
                 "FILE_RECEIVED"
             }:
-                if random.random() < 0.3:  # arbitrary 30% chance to drop
+                if random.random() < globals.loss_rate:
                     if globals.verbose:
                         print(f"[DROP] Induced packet loss for {msg_type}")
                     continue

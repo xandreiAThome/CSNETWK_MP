@@ -174,8 +174,31 @@ def get_cli_commands(sock, app_state, globals):
             del app_state.active_games[game_id]
 
     def cmd_accept_file():
-        file_id = input("Enter file ID to accept: \n")
-        accept_file(file_id)
+        if not app_state.pending_file_offers:
+            print("\n[INFO] No pending file offers.\n")
+            return
+
+        print("\n[PENDING FILE OFFERS]")
+        offers = list(app_state.pending_file_offers.items())
+        for idx, (file_id, offer) in enumerate(offers, start=1):
+            print(f"{idx}) ID: {file_id}")
+            print(f"   From: {offer['from']}")
+            print(f"   Filename: {offer['filename']} ({offer['filesize']} bytes)")
+            print(f"   Description: {offer.get('description', 'No description')}")
+            print(f"   Timestamp: {offer['timestamp']}")
+            print("-" * 40)
+
+        try:
+            choice = int(input("Enter the number of the file to accept: "))
+            if not (1 <= choice <= len(offers)):
+                print("Invalid choice.")
+                return
+            file_id = offers[choice - 1][0]
+        except ValueError:
+            print("Invalid input.")
+            return
+
+        accept_file(file_id, app_state)
         
     def cmd_send_file():
         target_user_id = input("Enter target user id (e.g. bob@192.168.1.12): \n")
