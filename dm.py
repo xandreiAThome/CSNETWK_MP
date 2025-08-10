@@ -10,7 +10,13 @@ from utils import *
 
 # todo: may need to bind different clients to different ports to ensure direct
 # messages are properly received.
-def send_dm(sock: socket, content: str, target_user_id: str, app_state: AppState):
+def send_dm(
+    sock: socket,
+    content: str,
+    target_user_id: str,
+    app_state: AppState,
+    custom_token=None,
+):
     try:
         # sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         # construct DM
@@ -25,7 +31,11 @@ def send_dm(sock: socket, content: str, target_user_id: str, app_state: AppState
             "CONTENT": content,
             "TIMESTAMP": timestamp_now,
             "MESSAGE_ID": str(uuid.uuid4().hex[:16]),
-            "TOKEN": f"{app_state.user_id}|{timestamp_now + globals.TTL}|chat",
+            "TOKEN": (
+                custom_token
+                if custom_token
+                else f"{app_state.user_id}|{timestamp_now + globals.TTL}|chat"
+            ),
         }
 
         # sock.send(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))
