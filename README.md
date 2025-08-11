@@ -39,27 +39,27 @@ python app.py <display_name> <user_name> [avatar_source_file]
 
 ## Task Distribution Table
 
-| Task/Role                               | Esponilla | Member 2 | Member 3 | Member 4 |
+| Task/Role                               | Esponilla | Tan      | Member 3 | Member 4 |
 | --------------------------------------- | --------- | -------- | -------- | -------- |
 | **Network Communication**               |           |          |          |          |
 | UDP Socket Setup                        | Primary   |          |          |          |
 | mDNS Discovery Integration              | Primary   |          |          |          |
 | IP Address Logging                      | Primary   |          |          |          |
 | **Core Feature Implementation**         |           |          |          |          |
-| Core Messaging (POST, DM, LIKE, FOLLOW) |           |          |          |          |
+| Core Messaging (POST, DM, LIKE, FOLLOW) |           | Primary  |          |          |
 | File Transfer (Offer, Chunk, ACK)       |           |          |          |          |
 | Tic Tac Toe Game (with recovery)        |           |          |          |          |
-| Group Creation / Messaging              |           |          |          |          |
+| Group Creation / Messaging              |           | Primary  |          |          |
 | Induced Packet Loss (Game & File)       |           |          |          |          |
 | Acknowledgement / Retry                 |           |          |          |          |
 | **UI & Logging**                        |           |          |          |          |
-| Verbose Mode Support                    |           |          |          |          |
+| Verbose Mode Support                    |           | Secondary|          |          |
 | Terminal Grid Display                   |           |          |          |          |
 | Message Parsing & Debug Output          |           |          |          |          |
 | **Testing and Validation**              |           |          |          |          |
 | Inter-group Testing                     |           |          |          |          |
 | Correct Parsing Validation              |           |          |          |          |
-| Token Expiry & IP Match                 |           |          |          |          |
+| Token Expiry & IP Match                 |           | Secondary|          |          |
 | **Documentation & Coordination**        |           |          |          |          |
 | RFC & Project Report                    |           |          |          |          |
 | Milestone Tracking & Deliverables       |           |          |          |          |
