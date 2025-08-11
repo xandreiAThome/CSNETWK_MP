@@ -45,30 +45,30 @@ python app.py <display_name> <user_name> [avatar_source_file]
 
 ## Task Distribution Table
 
-| Task/Role                               | Esponilla | Intino    | Mangubat | Tan |
-| --------------------------------------- | --------- | --------- | -------- | --- |
-| **Network Communication**               |           |           |          |     |
-| UDP Socket Setup                        | Primary   | Reviewer  |          |     |
-| mDNS Discovery Integration              | Primary   | Reviewer  |          |     |
-| IP Address Logging                      | Primary   | Reviewer  |          |     |
-| **Core Feature Implementation**         |           |           |          |     |
-| Core Messaging (POST, DM, LIKE, FOLLOW) | Secondary | Reviewer  |          |     |
-| File Transfer (Offer, Chunk, ACK)       | Reviewer  | Reviewer  |          |     |
-| Tic Tac Toe Game (with recovery)        | Reviewer  | Primary   |          |     |
-| Group Creation / Messaging              | Reviewer  | Reviewer  |          |     |
-| Induced Packet Loss (Game & File)       | Reviewer  | Secondary |          |     |
-| Acknowledgement / Retry                 | Reviewer  | Primary   |          |     |
-| **UI & Logging**                        |           |           |          |     |
-| Verbose Mode Support                    | Secondary | Secondary |          |     |
-| Terminal Grid Display                   |           | Primary   |          |     |
-| Message Parsing & Debug Output          | Secondary | Secondary |          |     |
-| **Testing and Validation**              |           |           |          |     |
-| Inter-group Testing                     |           |           |          |     |
-| Correct Parsing Validation              | Reviewer  | Reviewer  |          |     |
-| Token Expiry & IP Match                 | Secondary | Secondary |          |     |
-| **Documentation & Coordination**        |           |           |          |     |
-| RFC & Project Report                    | Secondary | Secondary |          |     |
-| Milestone Tracking & Deliverables       | Primary   | Secondary |          |     |
+| Task/Role                               | Esponilla | Intino    | Mangubat | Tan       |
+| --------------------------------------- | --------- | --------- | -------- | --------- |
+| **Network Communication**               |           |           |          |           |
+| UDP Socket Setup                        | Primary   | Reviewer  |          | Reviewer  |
+| mDNS Discovery Integration              | Primary   | Reviewer  |          | Reviewer  |
+| IP Address Logging                      | Primary   | Reviewer  |          | Reviewer  |
+| **Core Feature Implementation**         |           |           |          |           |
+| Core Messaging (POST, DM, LIKE, FOLLOW) | Secondary | Reviewer  |          | Primary   |
+| File Transfer (Offer, Chunk, ACK)       | Reviewer  | Reviewer  |          | Reviewer  |
+| Tic Tac Toe Game (with recovery)        | Reviewer  | Primary   |          | Reviewer  |
+| Group Creation / Messaging              | Reviewer  | Reviewer  |          | Primary   |
+| Induced Packet Loss (Game & File)       | Reviewer  | Secondary |          | Reviewer  |
+| Acknowledgement / Retry                 | Reviewer  | Primary   |          | Reviewer  |
+| **UI & Logging**                        |           |           |          |           |
+| Verbose Mode Support                    | Secondary | Secondary |          | Secondary |
+| Terminal Grid Display                   |           | Primary   |          |           |
+| Message Parsing & Debug Output          | Secondary | Secondary |          | Secondary |
+| **Testing and Validation**              |           |           |          |           |
+| Inter-group Testing                     |           |           |          |           |
+| Correct Parsing Validation              | Reviewer  | Reviewer  |          |           |
+| Token Expiry & IP Match                 | Secondary | Secondary |          | Secondary |
+| **Documentation & Coordination**        |           |           |          |           |
+| RFC & Project Report                    | Secondary | Secondary |          | Secondary |
+| Milestone Tracking & Deliverables       | Primary   | Secondary |          | Secondary |
 
 ## Disclaimer
 
