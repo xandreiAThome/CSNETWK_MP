@@ -91,7 +91,10 @@ def handle_create_group(message: dict, app_state: AppState):
 # mark self as added to a group
 def add_self(group_id: str, group_name: str, member_set: set, app_state: AppState):
     with app_state.lock:
-        app_state.joined_groups[group_id] = {"GROUP": group_name, "MEMBERS": member_set}
+        app_state.joined_groups[group_id] = {
+            "GROUP_NAME": group_name,
+            "MEMBERS": member_set,
+        }
 
 
 def update_group(
