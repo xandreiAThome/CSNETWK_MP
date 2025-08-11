@@ -248,11 +248,6 @@ def group_message(sock: socket, group_id: str, content: str, app_state: AppState
             "TIMESTAMP": timestamp_now,
             "TOKEN": f"{app_state.user_id}|{timestamp_now + globals.TTL}|group",
         }
-
-        sock.sendto(
-            build_message(message).encode("utf-8"),
-            (app_state.broadcast_ip, globals.PORT),
-        )
         
         # send the message to all members concerned
         member_set: set = app_state.owned_groups[group_id].get("MEMBERS")
