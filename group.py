@@ -32,11 +32,13 @@ def create_group(sock: socket, group_name: str, members: str, app_state: AppStat
                 "GROUP_NAME": group_name,
                 "MEMBERS": member_set
             }
+        
+        # send the message to all members
+        for member in member_set:
+            if member in app_state.peers:
+                sock.sendto(build_message(message).encode("utf-8"),
+                            (app_state.peers[member]["ip"], globals.PORT))
 
-        sock.sendto(
-            build_message(message).encode("utf-8"),
-            (app_state.broadcast_ip, globals.PORT),
-        )
         if globals.verbose:
             print(f"\n[SEND >]")
             print(f"Message Type : GROUP_CREATE")
@@ -109,6 +111,9 @@ def update_group(
         members_remove_list = members_remove.split(",")
         members_append_list = members_add.split(",")
 
+        # set of members who will receive the update
+        members_concerned: set = set(set(members_remove_list) | set(members_append_list) | member_set)
+
         # only existing peers can be added
         members_append_list = set(filter(lambda x: x in app_state.peers, members_append_list))
         # owner cannot remove themselves
@@ -138,10 +143,12 @@ def update_group(
             "TOKEN": f"{app_state.user_id}|{timestamp_now + globals.TTL}|group",
         }
 
-        sock.sendto(
-            build_message(message).encode("utf-8"),
-            (app_state.broadcast_ip, globals.PORT),
-        )
+        # send the message to all members concerned
+        for member in members_concerned:
+            if member in app_state.peers:
+                sock.sendto(build_message(message).encode("utf-8"),
+                            (app_state.peers[member]["ip"], globals.PORT))
+        
         if globals.verbose:
             print(f"\n[SEND >]")
             print(f"Message Type : GROUP_UPDATE")
@@ -246,6 +253,14 @@ def group_message(sock: socket, group_id: str, content: str, app_state: AppState
             build_message(message).encode("utf-8"),
             (app_state.broadcast_ip, globals.PORT),
         )
+        
+        # send the message to all members concerned
+        member_set: set = app_state.owned_groups[group_id].get("MEMBERS")
+        for member in member_set:
+            if member in app_state.peers:
+                sock.sendto(build_message(message).encode("utf-8"),
+                            (app_state.peers[member]["ip"], globals.PORT))
+        
         if globals.verbose:
             print(f"\n[SEND >]")
             print(f"Message Type : GROUP_MESSAGE")
