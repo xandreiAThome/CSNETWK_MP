@@ -47,3 +47,8 @@ class AppState:
     # TICTACTOE INFORMATION
     active_games: Dict[str, dict] = field(default_factory=dict)
     received_moves: Set[tuple] = field(default_factory=set)  # (GAMEID, TURN)
+
+    # FILE TRANSFER
+    pending_file_offers: Dict[str, dict] = field(default_factory=dict)  # FILEID → offer metadata
+    file_transfers: Dict[str, dict] = field(default_factory=dict)       # FILEID → chunks, etc.
+    pending_file_sends: Dict[str, dict] = field(default_factory=dict)  # FILEID → send info (chunks, metadata)

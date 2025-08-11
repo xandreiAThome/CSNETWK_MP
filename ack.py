@@ -12,12 +12,21 @@ def send_with_ack(sock, message: dict, app_state: AppState, ip: str):
         "TICTACTOE_MOVE",
         "TICTACTOE_RESULT",
         "DM",
+        "FILE_CHUNK",
     }  # Add more message types here
     sock.sendto(build_message(message).encode("utf-8"), (ip, globals.PORT))
 
     if message["TYPE"] in ackable:
+        # Generate appropriate message ID for ACK tracking
+        if message["TYPE"] == "FILE_CHUNK":
+            # For FILE_CHUNK, use FILEID + CHUNK_INDEX as the ACK ID
+            ack_id = f"{message['FILEID']}_chunk_{message['CHUNK_INDEX']}"
+        else:
+            # For other message types, use MESSAGE_ID
+            ack_id = message["MESSAGE_ID"]
+
         with app_state.lock:
-            app_state.pending_acks[message["MESSAGE_ID"]] = {
+            app_state.pending_acks[ack_id] = {
                 "message": message,
                 "destination": ip,
                 "retries": 0,
@@ -46,7 +55,7 @@ def handle_ack(msg, app_state, sender_ip):
     with app_state.lock:
         if msg_id in app_state.pending_acks:
             del app_state.pending_acks[msg_id]
-            print(f"[ACK RECEIVED] {msg_id}")
+            # print(f"[ACK RECEIVED] {msg_id}")
 
             if globals.verbose:
                 print(f"\n[RECV <]")

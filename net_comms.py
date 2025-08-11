@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 import socket
 import time
+import random
 from utils import *
 import utils.globals as globals
 from follow import handle_follow_message, handle_unfollow_message
@@ -9,6 +10,12 @@ from post import handle_post_message
 from like import handle_like_message
 from group import handle_create_group, handle_update_group, handle_group_message
 from tictactoe import handle_invite, handle_move, handle_result
+from file_transfer import (
+    handle_file_offer,
+    handle_file_chunk,
+    handle_file_accepted,
+    handle_file_received,
+)
 from ack import handle_ack
 
 
@@ -129,6 +136,18 @@ def listener_loop(sock: socket, app_state: AppState):
             msg = parse_message(raw_msg)
             msg_type = msg.get("TYPE")
 
+            # Induce packet loss for FILE and GAME messages
+            if globals.induce_loss and msg_type in {
+                "TICTACTOE_INVITE",
+                "TICTACTOE_MOVE",
+                "TICTACTOE_RESULT",
+                "FILE_CHUNK",
+            }:
+                if random.random() < globals.loss_rate:
+                    if globals.verbose:
+                        print(f"[DROP] Induced packet loss for {msg_type}")
+                    continue
+
             from_field = msg.get("FROM")
             user_id_field = msg.get("USER_ID")
 
@@ -194,6 +213,14 @@ def listener_loop(sock: socket, app_state: AppState):
                 handle_move(msg, app_state, sock, addr[0])
             elif msg_type == "TICTACTOE_RESULT":
                 handle_result(msg, app_state, sock, addr[0])
+            elif msg_type == "FILE_OFFER":
+                handle_file_offer(msg, app_state, sock)
+            elif msg_type == "FILE_CHUNK":
+                handle_file_chunk(msg, app_state, sock, addr[0])
+            elif msg_type == "FILE_ACCEPTED":
+                handle_file_accepted(msg, app_state)
+            elif msg_type == "FILE_RECEIVED":
+                handle_file_received(msg)
             else:
                 print(f"[UNKNOWN TYPE] {msg_type} from {addr}")
         except Exception as e:
@@ -211,7 +238,7 @@ def ack_resend_loop(sock, app_state):
                             print(f"\n[DROP !]")
                             print(f"MessageID    : {msg_id}")
                             print(f"Reason       : Max retries reached\n")
-                        print(f"[RESEND !] Gave up on {msg_id}")
+                            print(f"[RESEND !] Gave up on {msg_id}")
                         del app_state.pending_acks[msg_id]
                     else:
                         entry["retries"] += 1
@@ -220,7 +247,8 @@ def ack_resend_loop(sock, app_state):
                             build_message(entry["message"]).encode("utf-8"),
                             (entry["destination"], globals.PORT),
                         )
-                        if globals.verbose:
+
+                        if globals.verbose or globals.induce_loss:
                             msg_type = entry["message"].get("TYPE", "UNKNOWN")
                             print(f"\n[RESEND !]")
                             print(f"Message Type : {msg_type}")
@@ -232,7 +260,6 @@ def ack_resend_loop(sock, app_state):
                             print(f"MessageID    : {msg_id}")
                             print(f"Retry Count  : {entry['retries']}")
                             print(f"Destination  : {entry['destination']}\n")
-                        print(f"[RESEND] Retried {msg_id}")
 
 
 def peer_cleanup_loop(app_state):
