@@ -4,6 +4,7 @@ import time
 import uuid
 import utils.globals as globals
 from utils import build_message
+from ack import send_ack, send_with_ack
 
 
 def is_valid_token(token: str, expected_scope: str, expected_user: str = None) -> bool:
@@ -81,6 +82,9 @@ def accept_file(file_id, app_state, sock):
 
 
 def handle_file_chunk(message, app_state, sock, sender_ip):
+    # Send ACK for received chunk
+
+    send_ack(sock, message["MESSAGE_ID"], sender_ip, app_state)
     file_id = message["FILEID"]
     if file_id not in app_state.file_transfers:
         print(f"[DEBUG] Chunk received for unknown file_id={file_id}, ignoring.")
@@ -169,6 +173,28 @@ def send_file_received(sock, from_id, to_id, file_id):
 
     ip = to_id.split("@")[1]
     sock.sendto(build_message(message).encode("utf-8"), (ip, globals.PORT))
+
+
+def handle_file_received(message, app_state):
+    """
+    Handler for FILE_RECEIVED message. Called when the sender receives confirmation that the file was received.
+    """
+    file_id = message.get("FILEID")
+    from_id = message.get("FROM")
+    to_id = message.get("TO")
+    status = message.get("STATUS")
+    timestamp = message.get("TIMESTAMP")
+
+    from utils.globals import verbose
+
+    if verbose:
+        print(
+            f"[DEBUG] FILE_RECEIVED received: file_id={file_id}, from={from_id}, to={to_id}, status={status}, timestamp={timestamp}"
+        )
+    else:
+        print(
+            f"[INFO] File transfer confirmed complete for file_id={file_id} from {from_id} to {to_id}."
+        )
 
 
 def send_file(sock, app_state, to_user_id, filepath, description=""):
@@ -264,8 +290,9 @@ def handle_file_accepted(message, app_state):
                 "CHUNK_SIZE": len(chunk_data),
                 "TOKEN": token,
                 "DATA": base64.b64encode(chunk_data).decode("utf-8"),
+                "MESSAGE_ID": f"{file_id}_chunk_{i}",
             }
-            sock.sendto(build_message(chunk_msg).encode("utf-8"), (to_ip, globals.PORT))
+            send_with_ack(sock, chunk_msg, app_state, to_ip)
 
         print(f"[SENT FILE] {send_info['filepath']} ({filesize} bytes) to {to_user_id}")
 

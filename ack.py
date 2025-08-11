@@ -12,6 +12,7 @@ def send_with_ack(sock, message: dict, app_state: AppState, ip: str):
         "TICTACTOE_MOVE",
         "TICTACTOE_RESULT",
         "DM",
+        "FILE_CHUNK",
     }  # Add more message types here
     sock.sendto(build_message(message).encode("utf-8"), (ip, globals.PORT))
 
