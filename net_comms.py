@@ -11,6 +11,7 @@ from like import handle_like_message
 from group import handle_create_group, handle_update_group, handle_group_message
 from tictactoe import handle_invite, handle_move, handle_result
 from file_transfer import handle_file_offer, handle_file_chunk, handle_file_accepted
+from ack import handle_ack
 
 
 def get_local_ip():
@@ -63,6 +64,24 @@ def send_profile(sock: socket, status: str, app_state: AppState):
         print(f"\n")
 
 
+def handle_ping(msg: dict, addr: str, app_state: AppState):
+    user_id = msg.get("USER_ID")
+
+    if globals.broadcast_verbose:
+        print(f"\n[RECV <]")
+        print(f"Message Type : PING")
+        print(f"Timestamp    : {datetime.now(timezone.utc).timestamp()}")
+        print(f"From IP      : {addr}")
+        print(f"User ID      : {user_id}\n")
+
+    # Update last_seen timestamp for existing peers
+    if user_id in app_state.peers:
+        with app_state.lock:
+            app_state.peers[user_id]["last_seen"] = datetime.now(
+                timezone.utc
+            ).timestamp()
+
+
 def handle_profile(msg: dict, addr: str, app_state: AppState):
     display_name = msg.get("DISPLAY_NAME", "Unknown")
     user_id = msg.get("USER_ID")
@@ -78,7 +97,10 @@ def handle_profile(msg: dict, addr: str, app_state: AppState):
         print(f"Status       : {status}\n")
 
     if user_id not in app_state.peers:
-        print(f"\n[PROFILE] (Detected User) {display_name}: {status}", end="\n\n")
+        print(
+            f"\n[PROFILE] (Detected User) {display_name} [{user_id}]: {status}",
+            end="\n\n",
+        )
     # Avatar is optional — we ignore AVATAR_* if unsupported
     with app_state.lock:
         app_state.peers[user_id] = {
@@ -116,7 +138,7 @@ def listener_loop(sock: socket, app_state: AppState):
                 "TICTACTOE_RESULT",
                 "FILE_OFFER",
                 "FILE_CHUNK",
-                "FILE_RECEIVED"
+                "FILE_RECEIVED",
             }:
                 if random.random() < globals.loss_rate:
                     if globals.verbose:
@@ -149,6 +171,7 @@ def listener_loop(sock: socket, app_state: AppState):
             # discovery
             # only send profile if interval has passed, pings just trigger the check
             if msg_type == "PING":
+                handle_ping(msg, addr[0], app_state)
                 now = time.time()
                 if (now - last_profile_time) > min_profile_interval:
                     send_profile(sock, "BROADCASTING", app_state)
@@ -159,22 +182,6 @@ def listener_loop(sock: socket, app_state: AppState):
 
             # handle cases where the message uses USER_ID instead of FROM
             # failure to handle such cases used to result in errors trying to parse Nonetype
-
-            # msg_from = msg.get("FROM")
-            # msg_user_id = msg.get("USER_ID")
-
-            # if not (msg_from is None):
-            #     username, user_ip = msg.get("FROM").split('@')
-            # elif not (msg_user_id is None):
-            #     username, user_ip = msg.get("USER_ID").split('@')
-
-            # check for core feature msgs that the ip hasnt been spoofed
-            # I am crying from the fact that the format of msgs are inconsistent
-            # some only have user_id and others have FROM which basically is the user_id of the sender
-            # so I need to seperate the if else of PING AND PROFILE from the rest of the msg_types
-            # REMINDER that POST also has user_id instead of FROM :-(
-            # if user_ip != addr[0]:
-            #     continue
 
             elif msg.get("FROM") == app_state.user_id:
                 continue  # Message is from self again, curse the msg formats
@@ -206,7 +213,9 @@ def listener_loop(sock: socket, app_state: AppState):
             elif msg_type == "FILE_OFFER":
                 handle_file_offer(msg, app_state, sock)
             elif msg_type == "FILE_CHUNK":
-                print(f"[DEBUG] Incoming FILE_CHUNK for file_id={msg.get('FILEID')} from {addr[0]}")
+                print(
+                    f"[DEBUG] Incoming FILE_CHUNK for file_id={msg.get('FILEID')} from {addr[0]}"
+                )
                 handle_file_chunk(msg, app_state, sock, addr[0])
             elif msg_type == "FILE_ACCEPTED":
                 handle_file_accepted(msg, app_state)
@@ -227,7 +236,7 @@ def ack_resend_loop(sock, app_state):
                             print(f"\n[DROP !]")
                             print(f"MessageID    : {msg_id}")
                             print(f"Reason       : Max retries reached\n")
-                        print(f"[ACK] Gave up on {msg_id}")
+                        print(f"[RESEND !] Gave up on {msg_id}")
                         del app_state.pending_acks[msg_id]
                     else:
                         entry["retries"] += 1
@@ -237,8 +246,9 @@ def ack_resend_loop(sock, app_state):
                             (entry["destination"], globals.PORT),
                         )
                         if globals.verbose:
+                            msg_type = entry["message"].get("TYPE", "UNKNOWN")
                             print(f"\n[RESEND !]")
-                            print(f"Message Type : ACK")
+                            print(f"Message Type : {msg_type}")
                             print(
                                 f"Timestamp    : {datetime.now(timezone.utc).timestamp()}"
                             )
@@ -250,53 +260,42 @@ def ack_resend_loop(sock, app_state):
                         print(f"[RESEND] Retried {msg_id}")
 
 
-# Send message requiring ACK
-def send_with_ack(sock, message: dict, app_state: AppState, ip: str):
-    ackable = {
-        "TICTACTOE_INVITE",
-        "TICTACTOE_MOVE",
-        "TICTACTOE_RESULT",
-        "DM",
-    }  # Add more message types here
-    sock.sendto(build_message(message).encode("utf-8"), (ip, globals.PORT))
+def peer_cleanup_loop(app_state):
+    """Remove inactive peers that haven't been seen within TTL seconds"""
+    while True:
+        time.sleep(globals.TTL // 2)  # Check every 30 seconds (half of TTL)
+        current_time = datetime.now(timezone.utc).timestamp()
 
-    if message["TYPE"] in ackable:
         with app_state.lock:
-            app_state.pending_acks[message["MESSAGE_ID"]] = {
-                "message": message,
-                "destination": ip,
-                "retries": 0,
-                "timestamp": time.time(),
-            }
+            inactive_peers = []
+            for user_id, peer_data in app_state.peers.items():
+                if current_time - peer_data["last_seen"] > globals.TTL:
+                    inactive_peers.append(user_id)
 
+            for user_id in inactive_peers:
+                peer_data = app_state.peers[user_id]
+                print(
+                    f"\n[CLEANUP] Removed inactive peer: {peer_data['display_name']} [{user_id}]",
+                    end="\n\n",
+                )
+                del app_state.peers[user_id]
 
-# Send back ACK
-def send_ack(sock, msg_id, target_ip, app_state):
-    ack = {"TYPE": "ACK", "MESSAGE_ID": msg_id, "STATUS": "RECEIVED"}
-    sock.sendto(build_message(ack).encode("utf-8"), (target_ip, globals.PORT))
+            # Cleanup expired sent posts
+            expired_sent = [
+                post_timestamp
+                for post_timestamp, post in app_state.sent_posts.items()
+                if current_time > post.get("TIMESTAMP", 0) + globals.POST_TTL
+            ]
+            for post_timestamp in expired_sent:
+                print(f"[CLEANUP] Removed expired sent post: {post_timestamp}")
+                del app_state.sent_posts[post_timestamp]
 
-    if globals.verbose:
-        print(f"\n[SEND >]")
-        print(f"Message Type : ACK")
-        print(f"Timestamp    : {time.time()}")
-        print(f"From IP      : {app_state.user_id.split('@')[1]}")
-        print(f"From         : {app_state.user_id}")
-        print(f"To           : {target_ip}")
-        print(f"MessageID    : {msg_id}")
-        print(f"Status       : RECEIVED\n")
-
-
-def handle_ack(msg, app_state, sender_ip):
-    msg_id = msg.get("MESSAGE_ID")
-    with app_state.lock:
-        if msg_id in app_state.pending_acks:
-            del app_state.pending_acks[msg_id]
-            print(f"[ACK RECEIVED] {msg_id}")
-
-            if globals.verbose:
-                print(f"\n[RECV <]")
-                print(f"Message Type : ACK")
-                print(f"From IP      : {sender_ip}")
-                print(f"Timestamp    : {datetime.now(timezone.utc).timestamp()}")
-                print(f"MessageID    : {msg_id}")
-                print(f"Status       : {msg.get('STATUS', 'RECEIVED')}\n")
+            # Cleanup expired received posts
+            expired_received = [
+                post_timestamp
+                for post_timestamp, post in app_state.received_posts.items()
+                if current_time > post.get("TIMESTAMP", 0) + globals.POST_TTL
+            ]
+            for post_timestamp in expired_received:
+                print(f"[CLEANUP] Removed expired received post: {post_timestamp}")
+                del app_state.received_posts[post_timestamp]

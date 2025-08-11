@@ -1,7 +1,13 @@
 import socket
 import sys
 import ipaddress
-from net_comms import get_local_ip, broadcast_loop, listener_loop, ack_resend_loop
+from net_comms import (
+    get_local_ip,
+    broadcast_loop,
+    listener_loop,
+    ack_resend_loop,
+    peer_cleanup_loop,
+)
 from utils import AppState, globals
 import threading
 from follow import send_follow, send_unfollow
@@ -39,7 +45,7 @@ def main(display_name, user_name, avatar_source_file=None):
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)  # Allow rebinding
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)  # Enable broadcast
-        sock.bind((app_state.local_ip, globals.PORT))  # Use PORT constant
+        sock.bind(("0.0.0.0", globals.PORT))  # Use PORT constant
         print(f"[INFO] Socket bound to port {globals.PORT}")
         print(f"[INFO] Local IP: {app_state.local_ip}")
         print(f"[INFO] user_id: {app_state.user_id}")
@@ -53,6 +59,7 @@ def main(display_name, user_name, avatar_source_file=None):
     threading.Thread(
         target=ack_resend_loop, args=(sock, app_state), daemon=True
     ).start()
+    threading.Thread(target=peer_cleanup_loop, args=(app_state,), daemon=True).start()
 
     from cli_commands import get_cli_commands
 
