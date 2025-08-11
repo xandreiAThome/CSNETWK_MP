@@ -62,6 +62,7 @@ def accept_file(file_id, app_state, sock):
     }
 
     print(f"Accepted file offer for {offer['filename']}")
+    print(f"Transfer in progress...")
 
     # Send FILE_ACCEPTED back to sender to signal readiness
     from_id = app_state.user_id
@@ -79,7 +80,8 @@ def accept_file(file_id, app_state, sock):
         return
     to_ip = to_id.split("@")[1]
     sock.sendto(build_message(file_accepted_msg).encode("utf-8"), (to_ip, globals.PORT))
-    print(f"[SENT] FILE_ACCEPTED for file_id={file_id} to {to_id}")
+    if globals.verbose:
+        print(f"[INFO] FILE_ACCEPTED for file_id={file_id} to {to_id}")
 
 
 def handle_file_chunk(message, app_state, sock, sender_ip):
@@ -304,8 +306,7 @@ def send_file_chunks_thread(send_info, app_state, file_id, to_user_id):
             print(f"Status       : SENT\n")
         send_with_ack(sock, chunk_msg, app_state, to_ip)
 
-        # Add small delay between chunks to prevent overwhelming the receiver
-        time.sleep(0.2)
+        # No sleep needed - threading handles concurrency naturally
 
     print(f"[SENT FILE] {send_info['filepath']} ({filesize} bytes) to {to_user_id}")
 
