@@ -54,6 +54,12 @@ def send_profile(sock: socket, status: str, app_state: AppState):
         "STATUS": status,
     }
 
+    # Add avatar fields if avatar data exists
+    if app_state.avatar_data:
+        message["AVATAR_TYPE"] = "text"
+        message["AVATAR_ENCODING"] = "utf-8"
+        message["AVATAR_DATA"] = app_state.avatar_data
+
     sock.sendto(
         build_message(message).encode("utf-8"), (app_state.broadcast_ip, globals.PORT)
     )
@@ -91,6 +97,7 @@ def handle_profile(msg: dict, addr: str, app_state: AppState):
     display_name = msg.get("DISPLAY_NAME", "Unknown")
     user_id = msg.get("USER_ID")
     status = msg.get("STATUS", "")
+    avatar_data = msg.get("AVATAR_DATA", "")
 
     if globals.broadcast_verbose:
         print(f"\n[RECV <]")
@@ -99,21 +106,33 @@ def handle_profile(msg: dict, addr: str, app_state: AppState):
         print(f"From IP      : {addr}")
         print(f"User ID      : {user_id}")
         print(f"Display Name : {display_name}")
-        print(f"Status       : {status}\n")
+        print(f"Status       : {status}")
+        if avatar_data:
+            print(f"Avatar Type  : {msg.get('AVATAR_TYPE', '')}")
+            print(f"Avatar Data  :\n{avatar_data}")
+        print(f"\n")
 
     if user_id not in app_state.peers:
         print(
             f"\n[PROFILE] (Detected User) {display_name} [{user_id}]: {status}",
-            end="\n\n",
+            end="",
         )
+        if avatar_data:
+            print(f"\nAvatar:\n{avatar_data}")
+        print(end="\n\n")
     # Avatar is optional — we ignore AVATAR_* if unsupported
     with app_state.lock:
-        app_state.peers[user_id] = {
+        peer_data = {
             "ip": addr,
             "display_name": display_name,
             "status": status,
             "last_seen": datetime.now(timezone.utc).timestamp(),
         }
+        if avatar_data:
+            peer_data["avatar_data"] = avatar_data
+            peer_data["avatar_type"] = msg.get("AVATAR_TYPE", "")
+            peer_data["avatar_encoding"] = msg.get("AVATAR_ENCODING", "")
+        app_state.peers[user_id] = peer_data
 
 
 def broadcast_loop(sock: socket, app_state: AppState):

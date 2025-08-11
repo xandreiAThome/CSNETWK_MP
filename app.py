@@ -18,6 +18,8 @@ from pprint import pprint
 from group import create_group, update_group, group_message
 from tictactoe import move, send_invite, print_board, send_result
 import random
+import ascii_magic
+import os
 
 # TODO message queue to wait for acks
 # proccess action after getting ack
@@ -40,6 +42,25 @@ def main(display_name, user_name, avatar_source_file=None):
 
     app_state.user_id = f"{user_name}@{app_state.local_ip}"
     app_state.display_name = display_name
+
+    # Convert avatar source file to ASCII art if provided
+    if avatar_source_file:
+        try:
+            if os.path.exists(avatar_source_file):
+                # Convert image to ASCII art
+                ascii_art = ascii_magic.from_image_file(
+                    avatar_source_file,
+                    columns=40,  # Width of ASCII art
+                    width_ratio=2.0,  # Adjust for character width vs height
+                )
+                app_state.avatar_data = ascii_art
+                print(
+                    f"[INFO] Avatar loaded and converted to ASCII art from: {avatar_source_file}"
+                )
+            else:
+                print(f"[WARNING] Avatar file not found: {avatar_source_file}")
+        except Exception as e:
+            print(f"[ERROR] Failed to convert avatar to ASCII art: {e}")
 
     try:
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
