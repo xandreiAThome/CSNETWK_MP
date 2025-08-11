@@ -82,10 +82,26 @@ def accept_file(file_id, app_state, sock):
 
 
 def handle_file_chunk(message, app_state, sock, sender_ip):
-    # Send ACK for received chunk
+    # Send ACK for received chunk using FILEID
+    from utils.globals import verbose
 
-    send_ack(sock, message["MESSAGE_ID"], sender_ip, app_state)
     file_id = message["FILEID"]
+
+    # Ensure CHUNK_INDEX is present
+    if "CHUNK_INDEX" not in message:
+        print(f"[ERROR] FILE_CHUNK missing CHUNK_INDEX field")
+        return
+
+    chunk_index = int(message["CHUNK_INDEX"])
+    ack_id = f"{file_id}_chunk_{chunk_index}"
+
+    if verbose:
+        print(
+            f"[DEBUG] Received FILE_CHUNK with FILEID: {file_id}, chunk: {chunk_index}"
+        )
+
+    send_ack(sock, ack_id, sender_ip, app_state)
+
     if file_id not in app_state.file_transfers:
         print(f"[DEBUG] Chunk received for unknown file_id={file_id}, ignoring.")
         return
@@ -95,7 +111,6 @@ def handle_file_chunk(message, app_state, sock, sender_ip):
         return
 
     try:
-        chunk_index = int(message["CHUNK_INDEX"])
         total_chunks = int(message["TOTAL_CHUNKS"])
         chunk_data = base64.b64decode(message["DATA"])
     except Exception as e:
@@ -106,16 +121,21 @@ def handle_file_chunk(message, app_state, sock, sender_ip):
     transfer["chunks"][chunk_index] = chunk_data
     transfer["total_chunks"] = total_chunks
 
-    from utils.globals import verbose
-
     if verbose:
         print(
             f"[DEBUG] Received chunk {chunk_index + 1}/{total_chunks} for file '{transfer['filename']}' (file_id={file_id})"
+        )
+        print(
+            f"[DEBUG] Total chunks received so far: {len(transfer['chunks'])}/{total_chunks}"
         )
 
     if len(transfer["chunks"]) == total_chunks:
         print(f"[DEBUG] All chunks received for file_id={file_id}, assembling file.")
         assemble_file(file_id, app_state, sock)
+    else:
+        missing_chunks = [i for i in range(total_chunks) if i not in transfer["chunks"]]
+        if verbose and missing_chunks:
+            print(f"[DEBUG] Still missing chunks: {missing_chunks}")
 
 
 def assemble_file(file_id, app_state, sock):
@@ -124,14 +144,12 @@ def assemble_file(file_id, app_state, sock):
     chunks = transfer["chunks"]
     total_chunks = transfer["total_chunks"]
 
-    from utils.globals import verbose
-
     save_dir = "received_files"
-    if verbose:
+    if globals.verbose:
         print(f"[DEBUG] Checking if directory '{save_dir}' exists...")
     try:
         os.makedirs(save_dir, exist_ok=True)
-        if verbose:
+        if globals.verbose:
             print(f"[DEBUG] Directory '{save_dir}' is ready.")
     except Exception as e:
         print(f"[ERROR] Could not create directory '{save_dir}': {e}")
@@ -279,7 +297,6 @@ def handle_file_accepted(message, app_state):
                 "CHUNK_SIZE": len(chunk_data),
                 "TOKEN": token,
                 "DATA": base64.b64encode(chunk_data).decode("utf-8"),
-                "MESSAGE_ID": f"{file_id}_chunk_{i}",
             }
             if globals.verbose:
                 print(f"\n[SEND >]")
@@ -294,6 +311,9 @@ def handle_file_accepted(message, app_state):
                 print(f"Chunk Size   : {len(chunk_data)} bytes")
                 print(f"Status       : SENT\n")
             send_with_ack(sock, chunk_msg, app_state, to_ip)
+
+            # Add small delay between chunks to prevent overwhelming the receiver
+            time.sleep(0.1)
 
         print(f"[SENT FILE] {send_info['filepath']} ({filesize} bytes) to {to_user_id}")
 
