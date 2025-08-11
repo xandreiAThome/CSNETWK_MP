@@ -2,6 +2,7 @@ import base64
 import os
 import time
 import uuid
+import threading
 import utils.globals as globals
 from utils import build_message
 from ack import send_ack, send_with_ack
@@ -261,6 +262,59 @@ def send_file(sock, app_state, to_user_id, filepath, description=""):
     print(f"Waiting for FILE_ACCEPTED to send chunks...")
 
 
+def send_file_chunks_thread(send_info, app_state, file_id, to_user_id):
+    """
+    Thread function to send file chunks without blocking the main message loop
+    """
+    sock = send_info["sock"]
+    to_ip = send_info["to_ip"]
+    data = send_info["data"]
+    token = send_info["token"]
+    filesize = send_info["filesize"]
+
+    chunk_size = globals.CHUNK_SIZE
+    total_chunks = (len(data) + chunk_size - 1) // chunk_size
+
+    print(f"[SENDING CHUNKS] for file_id={file_id} to {to_user_id}")
+
+    for i in range(total_chunks):
+        chunk_data = data[i * chunk_size : (i + 1) * chunk_size]
+        chunk_msg = {
+            "TYPE": "FILE_CHUNK",
+            "FROM": app_state.user_id,
+            "TO": to_user_id,
+            "FILEID": file_id,
+            "CHUNK_INDEX": i,
+            "TOTAL_CHUNKS": total_chunks,
+            "CHUNK_SIZE": len(chunk_data),
+            "TOKEN": token,
+            "DATA": base64.b64encode(chunk_data).decode("utf-8"),
+        }
+        if globals.verbose:
+            print(f"\n[SEND >]")
+            print(f"Message Type : FILE_CHUNK")
+            print(f"Timestamp    : {int(time.time())}")
+            print(f"From         : {app_state.user_id}")
+            print(f"To           : {to_user_id}")
+            print(f"To IP        : {to_ip}")
+            print(f"File Name    : {send_info['filepath']}")
+            print(f"File ID      : {file_id}")
+            print(f"Chunk        : {i + 1}/{total_chunks}")
+            print(f"Chunk Size   : {len(chunk_data)} bytes")
+            print(f"Status       : SENT\n")
+        send_with_ack(sock, chunk_msg, app_state, to_ip)
+
+        # Add small delay between chunks to prevent overwhelming the receiver
+        time.sleep(0.2)
+
+    print(f"[SENT FILE] {send_info['filepath']} ({filesize} bytes) to {to_user_id}")
+
+    # Remove from pending sends after done
+    with app_state.lock:
+        if file_id in app_state.pending_file_sends:
+            del app_state.pending_file_sends[file_id]
+
+
 def handle_file_accepted(message, app_state):
     file_id = message.get("FILEID")
     from_id = message.get("FROM")
@@ -272,50 +326,15 @@ def handle_file_accepted(message, app_state):
             print(f"[WARN] Received FILE_ACCEPTED for unknown file_id={file_id}")
             return
 
-        send_info = app_state.pending_file_sends[file_id]
-        sock = send_info["sock"]
-        to_user_id = send_info["to_user_id"]
-        to_ip = send_info["to_ip"]
-        data = send_info["data"]
-        token = send_info["token"]
-        filesize = send_info["filesize"]
+        send_info = app_state.pending_file_sends[
+            file_id
+        ].copy()  # Copy to avoid thread conflicts
 
-        chunk_size = globals.CHUNK_SIZE
-        total_chunks = (len(data) + chunk_size - 1) // chunk_size
-
-        print(f"[SENDING CHUNKS] for file_id={file_id} to {to_user_id}")
-
-        for i in range(total_chunks):
-            chunk_data = data[i * chunk_size : (i + 1) * chunk_size]
-            chunk_msg = {
-                "TYPE": "FILE_CHUNK",
-                "FROM": app_state.user_id,
-                "TO": to_user_id,
-                "FILEID": file_id,
-                "CHUNK_INDEX": i,
-                "TOTAL_CHUNKS": total_chunks,
-                "CHUNK_SIZE": len(chunk_data),
-                "TOKEN": token,
-                "DATA": base64.b64encode(chunk_data).decode("utf-8"),
-            }
-            if globals.verbose:
-                print(f"\n[SEND >]")
-                print(f"Message Type : FILE_CHUNK")
-                print(f"Timestamp    : {int(time.time())}")
-                print(f"From         : {app_state.user_id}")
-                print(f"To           : {to_user_id}")
-                print(f"To IP        : {to_ip}")
-                print(f"File Name    : {send_info['filepath']}")
-                print(f"File ID      : {file_id}")
-                print(f"Chunk        : {i + 1}/{total_chunks}")
-                print(f"Chunk Size   : {len(chunk_data)} bytes")
-                print(f"Status       : SENT\n")
-            send_with_ack(sock, chunk_msg, app_state, to_ip)
-
-            # Add small delay between chunks to prevent overwhelming the receiver
-            time.sleep(0.1)
-
-        print(f"[SENT FILE] {send_info['filepath']} ({filesize} bytes) to {to_user_id}")
-
-        # Remove from pending sends after done
-        del app_state.pending_file_sends[file_id]
+    # Start chunk sending in a separate thread
+    thread = threading.Thread(
+        target=send_file_chunks_thread,
+        args=(send_info, app_state, file_id, from_id),
+        daemon=True,
+    )
+    thread.start()
+    print(f"[INFO] Started file chunk sending thread for file_id={file_id}")
