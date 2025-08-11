@@ -194,7 +194,7 @@ def send_file_received(sock, from_id, to_id, file_id):
     sock.sendto(build_message(message).encode("utf-8"), (ip, globals.PORT))
 
 
-def handle_file_received(message, app_state):
+def handle_file_received(message):
     """
     Handler for FILE_RECEIVED message. Called when the sender receives confirmation that the file was received.
     """
