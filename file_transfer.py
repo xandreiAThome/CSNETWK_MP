@@ -179,22 +179,11 @@ def handle_file_received(message, app_state):
     """
     Handler for FILE_RECEIVED message. Called when the sender receives confirmation that the file was received.
     """
-    file_id = message.get("FILEID")
-    from_id = message.get("FROM")
-    to_id = message.get("TO")
-    status = message.get("STATUS")
-    timestamp = message.get("TIMESTAMP")
-
     from utils.globals import verbose
 
-    if verbose:
-        print(
-            f"[DEBUG] FILE_RECEIVED received: file_id={file_id}, from={from_id}, to={to_id}, status={status}, timestamp={timestamp}"
-        )
-    else:
-        print(
-            f"[INFO] File transfer confirmed complete for file_id={file_id} from {from_id} to {to_id}."
-        )
+    print("[FILE_RECEIVED] Message fields:")
+    for key, value in message.items():
+        print(f"  {key}: {value}")
 
 
 def send_file(sock, app_state, to_user_id, filepath, description=""):
@@ -292,6 +281,18 @@ def handle_file_accepted(message, app_state):
                 "DATA": base64.b64encode(chunk_data).decode("utf-8"),
                 "MESSAGE_ID": f"{file_id}_chunk_{i}",
             }
+            if globals.verbose:
+                print(f"\n[SEND >]")
+                print(f"Message Type : FILE_CHUNK")
+                print(f"Timestamp    : {int(time.time())}")
+                print(f"From         : {app_state.user_id}")
+                print(f"To           : {to_user_id}")
+                print(f"To IP        : {to_ip}")
+                print(f"File Name    : {send_info['filepath']}")
+                print(f"File ID      : {file_id}")
+                print(f"Chunk        : {i + 1}/{total_chunks}")
+                print(f"Chunk Size   : {len(chunk_data)} bytes")
+                print(f"Status       : SENT\n")
             send_with_ack(sock, chunk_msg, app_state, to_ip)
 
         print(f"[SENT FILE] {send_info['filepath']} ({filesize} bytes) to {to_user_id}")
