@@ -240,7 +240,7 @@ def ack_resend_loop(sock, app_state):
                             print(f"\n[DROP !]")
                             print(f"MessageID    : {msg_id}")
                             print(f"Reason       : Max retries reached\n")
-                        print(f"[RESEND !] Gave up on {msg_id}")
+                            print(f"[RESEND !] Gave up on {msg_id}")
                         del app_state.pending_acks[msg_id]
                     else:
                         entry["retries"] += 1
@@ -261,7 +261,6 @@ def ack_resend_loop(sock, app_state):
                             print(f"MessageID    : {msg_id}")
                             print(f"Retry Count  : {entry['retries']}")
                             print(f"Destination  : {entry['destination']}\n")
-                        print(f"[RESEND] Retried {msg_id}")
 
 
 def peer_cleanup_loop(app_state):
