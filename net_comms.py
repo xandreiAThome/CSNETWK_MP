@@ -247,7 +247,8 @@ def ack_resend_loop(sock, app_state):
                             build_message(entry["message"]).encode("utf-8"),
                             (entry["destination"], globals.PORT),
                         )
-                        if globals.verbose:
+
+                        if globals.verbose or globals.induce_loss:
                             msg_type = entry["message"].get("TYPE", "UNKNOWN")
                             print(f"\n[RESEND !]")
                             print(f"Message Type : {msg_type}")
