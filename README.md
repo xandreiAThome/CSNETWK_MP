@@ -48,27 +48,27 @@ python app.py <display_name> <user_name> [avatar_source_file]
 | Task/Role                               | Esponilla | Intino    | Mangubat | Tan       |
 | --------------------------------------- | --------- | --------- | -------- | --------- |
 | **Network Communication**               |           |           |          |           |
-| UDP Socket Setup                        | Primary   | Reviewer  |          | Reviewer  |
-| mDNS Discovery Integration              | Primary   | Reviewer  |          | Reviewer  |
-| IP Address Logging                      | Primary   | Reviewer  |          | Reviewer  |
+| UDP Socket Setup                        | Primary   | Reviewer  | Reviewer | Reviewer  |
+| mDNS Discovery Integration              | Primary   | Reviewer  | Reviewer | Reviewer  |
+| IP Address Logging                      | Primary   | Reviewer  | Reviewer | Reviewer  |
 | **Core Feature Implementation**         |           |           |          |           |
-| Core Messaging (POST, DM, LIKE, FOLLOW) | Secondary | Reviewer  |          | Primary   |
-| File Transfer (Offer, Chunk, ACK)       | Reviewer  | Reviewer  |          | Reviewer  |
-| Tic Tac Toe Game (with recovery)        | Reviewer  | Primary   |          | Reviewer  |
-| Group Creation / Messaging              | Reviewer  | Reviewer  |          | Primary   |
-| Induced Packet Loss (Game & File)       | Reviewer  | Secondary |          | Reviewer  |
-| Acknowledgement / Retry                 | Reviewer  | Primary   |          | Reviewer  |
+| Core Messaging (POST, DM, LIKE, FOLLOW) | Secondary | Reviewer  | Reviewer | Primary   |
+| File Transfer (Offer, Chunk, ACK)       | Reviewer  | Reviewer  | Primary  | Reviewer  |
+| Tic Tac Toe Game (with recovery)        | Reviewer  | Primary   | Reviewer | Reviewer  |
+| Group Creation / Messaging              | Reviewer  | Reviewer  | Reviewer | Primary   |
+| Induced Packet Loss (Game & File)       | Reviewer  | Secondary | Primary  | Reviewer  |
+| Acknowledgement / Retry                 | Reviewer  | Primary   | Reviewer | Reviewer  |
 | **UI & Logging**                        |           |           |          |           |
-| Verbose Mode Support                    | Secondary | Secondary |          | Secondary |
-| Terminal Grid Display                   |           | Primary   |          |           |
-| Message Parsing & Debug Output          | Secondary | Secondary |          | Secondary |
+| Verbose Mode Support                    | Secondary | Secondary | Secondary| Secondary |
+| Terminal Grid Display                   | Reviewer  | Primary   | Secondary| Reviewer  |
+| Message Parsing & Debug Output          | Secondary | Secondary | Secondary| Secondary |
 | **Testing and Validation**              |           |           |          |           |
-| Inter-group Testing                     |           |           |          |           |
-| Correct Parsing Validation              | Reviewer  | Reviewer  |          |           |
-| Token Expiry & IP Match                 | Secondary | Secondary |          | Secondary |
+| Inter-group Testing                     | Secondary | Secondary | Secondary| Secondary |
+| Correct Parsing Validation              | Reviewer  | Reviewer  | Reviewer | Reviewer  |
+| Token Expiry & IP Match                 | Secondary | Secondary | Secondary| Secondary |
 | **Documentation & Coordination**        |           |           |          |           |
-| RFC & Project Report                    | Secondary | Secondary |          | Secondary |
-| Milestone Tracking & Deliverables       | Primary   | Secondary |          | Secondary |
+| RFC & Project Report                    | Secondary | Secondary | Secondary| Secondary |
+| Milestone Tracking & Deliverables       | Primary   | Secondary | Secondary| Secondary |
 
 ## Disclaimer
 
