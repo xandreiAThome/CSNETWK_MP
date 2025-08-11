@@ -309,7 +309,7 @@ def peer_cleanup_loop(app_state):
             expired_sent = [
                 post_timestamp
                 for post_timestamp, post in app_state.sent_posts.items()
-                if current_time > post.get("TIMESTAMP", 0) + globals.POST_TTL
+                if current_time > float(post.get("TIMESTAMP", 0)) + globals.POST_TTL
             ]
             for post_timestamp in expired_sent:
                 print(f"[CLEANUP] Removed expired sent post: {post_timestamp}")
@@ -319,7 +319,7 @@ def peer_cleanup_loop(app_state):
             expired_received = [
                 post_timestamp
                 for post_timestamp, post in app_state.received_posts.items()
-                if current_time > post.get("TIMESTAMP", 0) + globals.POST_TTL
+                if current_time > float(post.get("TIMESTAMP", 0)) + globals.POST_TTL
             ]
             for post_timestamp in expired_received:
                 print(f"[CLEANUP] Removed expired received post: {post_timestamp}")
