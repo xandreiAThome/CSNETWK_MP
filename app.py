@@ -41,7 +41,9 @@ def main(display_name, user_name, avatar_source_file=None):
             if os.path.exists(avatar_source_file):
                 # Convert image to ASCII art
                 ascii_art_obj = ascii_magic.from_image(avatar_source_file)
-                ascii_art = str(ascii_art_obj)  # Convert AsciiArt object to string
+                ascii_art = (
+                    ascii_art_obj.to_terminal()
+                )  # Convert to terminal output format
                 app_state.avatar_data = ascii_art
                 print(
                     f"[INFO] Avatar loaded and converted to ASCII art from: {avatar_source_file}"
