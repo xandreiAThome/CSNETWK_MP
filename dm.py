@@ -38,6 +38,12 @@ def send_dm(
             ),
         }
 
+        # Add avatar fields if avatar data exists
+        if app_state.avatar_data:
+            message["AVATAR_TYPE"] = "text"
+            message["AVATAR_ENCODING"] = "base64"
+            message["AVATAR_DATA"] = app_state.avatar_data
+
         # sock.send(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))
 
         send_with_ack(sock, message, app_state, target_user["ip"])
@@ -93,22 +99,26 @@ def handle_dm(
     if timestamp_ttl - timestamp_now > 0 and scope == "chat":
         send_ack(sock, message["MESSAGE_ID"], sender_ip, app_state)
         display_name = app_state.peers[user_id]["display_name"]
+        avatar_data = message.get("AVATAR_DATA", "")
 
         # Save received DM to app state
         with app_state.lock:
             if user_id not in app_state.dm_messages:
                 app_state.dm_messages[user_id] = []
-            app_state.dm_messages[user_id].append(
-                {
-                    "from": user_id,
-                    "to": app_state.user_id,
-                    "content": content,
-                    "timestamp": timestamp_now,
-                    "direction": "received",
-                    "token": message["TOKEN"],
-                    "message_id": message["MESSAGE_ID"],
-                }
-            )
+            dm_entry = {
+                "from": user_id,
+                "to": app_state.user_id,
+                "content": content,
+                "timestamp": timestamp_now,
+                "direction": "received",
+                "token": message["TOKEN"],
+                "message_id": message["MESSAGE_ID"],
+            }
+            if avatar_data:
+                dm_entry["avatar_data"] = avatar_data
+                dm_entry["avatar_type"] = message.get("AVATAR_TYPE", "")
+                dm_entry["avatar_encoding"] = message.get("AVATAR_ENCODING", "")
+            app_state.dm_messages[user_id].append(dm_entry)
 
         if globals.verbose:
             print(f"\n[RECV <]")
@@ -119,8 +129,21 @@ def handle_dm(
             print(f"Display Name : {display_name}")
             print(f"Message Id : {message['MESSAGE_ID']}")
             print(f"Content      : {content}")
+            if avatar_data:
+                print(f"Avatar Type  : {message.get('AVATAR_TYPE', '')}")
+                print(f"Avatar Encoding : {message.get('AVATAR_ENCODING', '')}")
+                # Decode base64 avatar for verbose display
+                from utils.utils import decode_avatar_data
+
+                decoded_avatar = decode_avatar_data(avatar_data)
+                print(f"Avatar Data  :\n{decoded_avatar}")
             print(f"Status       : RECEIVED\n")
-        print(f"\n[DM] {display_name} chatted you: {content}", end="\n\n")
+        print(f"\n[DM] {display_name} chatted you: {content}")
+        if avatar_data:
+            from utils.utils import display_avatar
+
+            display_avatar(avatar_data)
+        print(end="\n\n")
     else:
         if globals.verbose:
             print("\n[ERROR]: TOKEN invalid\n")

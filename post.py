@@ -21,6 +21,12 @@ def send_post(sock: socket, content: str, app_state: AppState):
             "TOKEN": f"{app_state.user_id}|{timestamp_now + globals.POST_TTL}|broadcast",
         }
 
+        # Add avatar fields if avatar data exists
+        if app_state.avatar_data:
+            message["AVATAR_TYPE"] = "text"
+            message["AVATAR_ENCODING"] = "base64"
+            message["AVATAR_DATA"] = app_state.avatar_data
+
         # add to dictionary of sent posts
         with app_state.lock:
             app_state.sent_posts[str(message.get("TIMESTAMP"))] = {
@@ -71,6 +77,8 @@ def handle_post_message(message: dict, app_state: AppState):
         if timestamp_ttl - timestamp_now > 0 and scope == "broadcast":
 
             display_name = app_state.peers[user_id]["display_name"]
+            avatar_data = message.get("AVATAR_DATA", "")
+
             if globals.verbose:
                 print(f"\n[RECV <]")
                 print(f"Message Type : POST")
@@ -78,11 +86,22 @@ def handle_post_message(message: dict, app_state: AppState):
                 print(f"From         : {user_id}")
                 print(f"Display Name : {display_name}")
                 print(f"Content      : {content}")
+                if avatar_data:
+                    print(f"Avatar Type  : {message.get('AVATAR_TYPE', '')}")
+                    print(f"Avatar Encoding : {message.get('AVATAR_ENCODING', '')}")
+                    # Decode base64 avatar for verbose display
+                    from utils.utils import decode_avatar_data
+
+                    decoded_avatar = decode_avatar_data(avatar_data)
+                    print(f"Avatar Data  :\n{decoded_avatar}")
                 print(f"Status       : RECEIVED\n")
-            print(
-                f"\n[POST : [UTC Time: {post_timestamp}] {display_name}: {content}",
-                end="\n\n",
-            )
+
+            print(f"\n[POST : [UTC Time: {post_timestamp}] {display_name}: {content}")
+            if avatar_data:
+                from utils.utils import display_avatar
+
+                display_avatar(avatar_data)
+            print(end="\n\n")
 
             with app_state.lock:
                 app_state.received_posts[post_timestamp] = {

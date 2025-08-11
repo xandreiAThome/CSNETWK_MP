@@ -54,6 +54,12 @@ def send_profile(sock: socket, status: str, app_state: AppState):
         "STATUS": status,
     }
 
+    # Add avatar fields if avatar data exists
+    if app_state.avatar_data:
+        message["AVATAR_TYPE"] = "text"
+        message["AVATAR_ENCODING"] = "base64"
+        message["AVATAR_DATA"] = app_state.avatar_data
+
     sock.sendto(
         build_message(message).encode("utf-8"), (app_state.broadcast_ip, globals.PORT)
     )
@@ -91,6 +97,7 @@ def handle_profile(msg: dict, addr: str, app_state: AppState):
     display_name = msg.get("DISPLAY_NAME", "Unknown")
     user_id = msg.get("USER_ID")
     status = msg.get("STATUS", "")
+    avatar_data = msg.get("AVATAR_DATA", "")
 
     if globals.broadcast_verbose:
         print(f"\n[RECV <]")
@@ -99,21 +106,37 @@ def handle_profile(msg: dict, addr: str, app_state: AppState):
         print(f"From IP      : {addr}")
         print(f"User ID      : {user_id}")
         print(f"Display Name : {display_name}")
-        print(f"Status       : {status}\n")
+        print(f"Status       : {status}")
+        if avatar_data:
+            print(f"Avatar Type  : {msg.get('AVATAR_TYPE', '')}")
+            print(f"Avatar Encoding : {msg.get('AVATAR_ENCODING', '')}")
+            # Decode base64 avatar for verbose display
+            from utils.utils import decode_avatar_data
+
+            decoded_avatar = decode_avatar_data(avatar_data)
+            print(f"Avatar Data  :\n{decoded_avatar}")
+        print(f"\n")
 
     if user_id not in app_state.peers:
-        print(
-            f"\n[PROFILE] (Detected User) {display_name} [{user_id}]: {status}",
-            end="\n\n",
-        )
+        print(f"\n[PROFILE] (Detected User) {display_name} [{user_id}]: {status}")
+        if avatar_data:
+            from utils.utils import display_avatar
+
+            display_avatar(avatar_data)
+        print()  # Add blank line
     # Avatar is optional — we ignore AVATAR_* if unsupported
     with app_state.lock:
-        app_state.peers[user_id] = {
+        peer_data = {
             "ip": addr,
             "display_name": display_name,
             "status": status,
             "last_seen": datetime.now(timezone.utc).timestamp(),
         }
+        if avatar_data:
+            peer_data["avatar_data"] = avatar_data
+            peer_data["avatar_type"] = msg.get("AVATAR_TYPE", "")
+            peer_data["avatar_encoding"] = msg.get("AVATAR_ENCODING", "")
+        app_state.peers[user_id] = peer_data
 
 
 def broadcast_loop(sock: socket, app_state: AppState):
@@ -286,7 +309,7 @@ def peer_cleanup_loop(app_state):
             expired_sent = [
                 post_timestamp
                 for post_timestamp, post in app_state.sent_posts.items()
-                if current_time > post.get("TIMESTAMP", 0) + globals.POST_TTL
+                if current_time > float(post.get("TIMESTAMP", 0)) + globals.POST_TTL
             ]
             for post_timestamp in expired_sent:
                 print(f"[CLEANUP] Removed expired sent post: {post_timestamp}")
@@ -296,7 +319,7 @@ def peer_cleanup_loop(app_state):
             expired_received = [
                 post_timestamp
                 for post_timestamp, post in app_state.received_posts.items()
-                if current_time > post.get("TIMESTAMP", 0) + globals.POST_TTL
+                if current_time > float(post.get("TIMESTAMP", 0)) + globals.POST_TTL
             ]
             for post_timestamp in expired_received:
                 print(f"[CLEANUP] Removed expired received post: {post_timestamp}")
