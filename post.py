@@ -88,7 +88,12 @@ def handle_post_message(message: dict, app_state: AppState):
                 print(f"Content      : {content}")
                 if avatar_data:
                     print(f"Avatar Type  : {message.get('AVATAR_TYPE', '')}")
-                    print(f"Avatar Data  :\n{avatar_data}")
+                    print(f"Avatar Encoding : {message.get('AVATAR_ENCODING', '')}")
+                    # Decode base64 avatar for verbose display
+                    from utils.utils import decode_avatar_data
+
+                    decoded_avatar = decode_avatar_data(avatar_data)
+                    print(f"Avatar Data  :\n{decoded_avatar}")
                 print(f"Status       : RECEIVED\n")
 
             print(f"\n[POST : [UTC Time: {post_timestamp}] {display_name}: {content}")

@@ -109,7 +109,12 @@ def handle_profile(msg: dict, addr: str, app_state: AppState):
         print(f"Status       : {status}")
         if avatar_data:
             print(f"Avatar Type  : {msg.get('AVATAR_TYPE', '')}")
-            print(f"Avatar Data  :\n{avatar_data}")
+            print(f"Avatar Encoding : {msg.get('AVATAR_ENCODING', '')}")
+            # Decode base64 avatar for verbose display
+            from utils.utils import decode_avatar_data
+
+            decoded_avatar = decode_avatar_data(avatar_data)
+            print(f"Avatar Data  :\n{decoded_avatar}")
         print(f"\n")
 
     if user_id not in app_state.peers:
