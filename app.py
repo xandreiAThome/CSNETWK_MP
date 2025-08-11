@@ -10,14 +10,6 @@ from net_comms import (
 )
 from utils import AppState, globals
 import threading
-from follow import send_follow, send_unfollow
-from dm import send_dm
-from post import send_post
-from like import send_like
-from pprint import pprint
-from group import create_group, update_group, group_message
-from tictactoe import move, send_invite, print_board, send_result
-import random
 import ascii_magic
 import os
 
@@ -48,11 +40,8 @@ def main(display_name, user_name, avatar_source_file=None):
         try:
             if os.path.exists(avatar_source_file):
                 # Convert image to ASCII art
-                ascii_art = ascii_magic.from_image_file(
-                    avatar_source_file,
-                    columns=40,  # Width of ASCII art
-                    width_ratio=2.0,  # Adjust for character width vs height
-                )
+                ascii_art_obj = ascii_magic.from_image(avatar_source_file)
+                ascii_art = str(ascii_art_obj)  # Convert AsciiArt object to string
                 app_state.avatar_data = ascii_art
                 print(
                     f"[INFO] Avatar loaded and converted to ASCII art from: {avatar_source_file}"
