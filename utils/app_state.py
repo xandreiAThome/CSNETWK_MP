@@ -34,9 +34,21 @@ class AppState:
     joined_groups: Dict[str, dict] = field(
         default_factory=dict
     )  # groups this client joined and doesn't own
+
+    # used for storing messages
+    dm_messages: Dict[str, list] = field(default_factory=dict)  # DM messages by user_id
+    group_messages: Dict[str, list] = field(
+        default_factory=dict
+    )  # Group messages by group_id
+
     # ACK
     pending_acks: Dict[str, dict] = field(default_factory=dict)
 
     # TICTACTOE INFORMATION
     active_games: Dict[str, dict] = field(default_factory=dict)
     received_moves: Set[tuple] = field(default_factory=set)  # (GAMEID, TURN)
+
+    # FILE TRANSFER
+    pending_file_offers: Dict[str, dict] = field(default_factory=dict)  # FILEID → offer metadata
+    file_transfers: Dict[str, dict] = field(default_factory=dict)       # FILEID → chunks, etc.
+    pending_file_sends: Dict[str, dict] = field(default_factory=dict)  # FILEID → send info (chunks, metadata)
