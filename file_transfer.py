@@ -202,11 +202,13 @@ def handle_file_received(message):
     """
     Handler for FILE_RECEIVED message. Called when the sender receives confirmation that the file was received.
     """
-    from utils.globals import verbose
 
-    print("[FILE_RECEIVED] Message fields:")
-    for key, value in message.items():
-        print(f"  {key}: {value}")
+    if globals.verbose:
+        print("[FILE_RECEIVED] Message fields:")
+        for key, value in message.items():
+            print(f"  {key}: {value}")
+    else:
+        print("[INFO] FILE SENT SUCCESFULLY")
 
 
 def send_file(sock, app_state, to_user_id, filepath, description=""):
