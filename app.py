@@ -41,8 +41,8 @@ def main(display_name, user_name, avatar_source_file=None):
             if os.path.exists(avatar_source_file):
                 # Convert image to ASCII art
                 ascii_art_obj = ascii_magic.from_image(avatar_source_file)
-                ascii_art = (
-                    ascii_art_obj.to_terminal()
+                ascii_art = ascii_art_obj.to_terminal(
+                    columns=40
                 )  # Convert to terminal output format
 
                 # Encode to base64 for transmission
