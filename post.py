@@ -93,7 +93,9 @@ def handle_post_message(message: dict, app_state: AppState):
 
             print(f"\n[POST : [UTC Time: {post_timestamp}] {display_name}: {content}")
             if avatar_data:
-                print(f"Avatar:\n{avatar_data}")
+                from utils.utils import display_avatar
+
+                display_avatar(avatar_data)
             print(end="\n\n")
 
             with app_state.lock:

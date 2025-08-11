@@ -23,3 +23,13 @@ def parse_token(token: str) -> dict:
         raise ValueError(f"Invalid token format: {token}") from e
 
     return {"USER_ID": user_id, "TIMESTAMP_TTL": timestamp_ttl, "SCOPE": scope}
+
+
+def display_avatar(avatar_data: str):
+    """Helper function to properly display ASCII art avatar"""
+    if avatar_data:
+        # Simply print the avatar data as received - it should already be formatted
+        print("Avatar:")
+        print(avatar_data)
+    else:
+        print("No avatar available")

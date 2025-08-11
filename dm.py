@@ -135,7 +135,9 @@ def handle_dm(
             print(f"Status       : RECEIVED\n")
         print(f"\n[DM] {display_name} chatted you: {content}")
         if avatar_data:
-            print(f"Avatar:\n{avatar_data}")
+            from utils.utils import display_avatar
+
+            display_avatar(avatar_data)
         print(end="\n\n")
     else:
         if globals.verbose:
