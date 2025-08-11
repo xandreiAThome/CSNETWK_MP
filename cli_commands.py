@@ -349,7 +349,6 @@ def get_cli_commands(sock, app_state, globals):
         "create_group": cmd_create_group,
         "update_group": cmd_update_group,
         "message_group": cmd_message_group,
-        "group_message": cmd_message_group,
         
         "invite_ttt": cmd_invite_ttt,
         "move": cmd_move,
