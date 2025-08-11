@@ -86,7 +86,6 @@ def accept_file(file_id, app_state, sock):
 
 def handle_file_chunk(message, app_state, sock, sender_ip):
     # Send ACK for received chunk using FILEID
-    from utils.globals import verbose
 
     file_id = message["FILEID"]
 
@@ -98,7 +97,7 @@ def handle_file_chunk(message, app_state, sock, sender_ip):
     chunk_index = int(message["CHUNK_INDEX"])
     ack_id = f"{file_id}_chunk_{chunk_index}"
 
-    if verbose:
+    if globals.verbose:
         print(
             f"[DEBUG] Received FILE_CHUNK with FILEID: {file_id}, chunk: {chunk_index}"
         )
@@ -124,7 +123,7 @@ def handle_file_chunk(message, app_state, sock, sender_ip):
     transfer["chunks"][chunk_index] = chunk_data
     transfer["total_chunks"] = total_chunks
 
-    if verbose:
+    if globals.verbose:
         print(
             f"[DEBUG] Received chunk {chunk_index + 1}/{total_chunks} for file '{transfer['filename']}' (file_id={file_id})"
         )
@@ -133,11 +132,14 @@ def handle_file_chunk(message, app_state, sock, sender_ip):
         )
 
     if len(transfer["chunks"]) == total_chunks:
-        print(f"[DEBUG] All chunks received for file_id={file_id}, assembling file.")
+        if globals.verbose:
+            print(
+                f"[DEBUG] All chunks received for file_id={file_id}, assembling file."
+            )
         assemble_file(file_id, app_state, sock)
     else:
         missing_chunks = [i for i in range(total_chunks) if i not in transfer["chunks"]]
-        if verbose and missing_chunks:
+        if globals.verbose and missing_chunks:
             print(f"[DEBUG] Still missing chunks: {missing_chunks}")
 
 
