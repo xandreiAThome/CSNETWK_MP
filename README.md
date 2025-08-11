@@ -2,7 +2,13 @@
 
 ### An implementation of the [Local Social Networking Protocol (LSNP)](https://docs.google.com/document/d/1DcymwZjUVcPXOps-dEgv-pvsCBtRUgKi3cOj_jULzas/edit?tab=t.0#bookmark=id.2vyk3jhpju68) for the partial fulfillment of CSNETWK Machine Project
 
-# How to run
+## Install dependencies
+
+```
+pip install -r requirements.txt
+```
+
+## How to run
 
 ```
 python app.py <display_name> <user_name> [avatar_source_file]
@@ -11,7 +17,7 @@ python app.py <display_name> <user_name> [avatar_source_file]
 > [!NOTE]  
 > avatar_source_file is optional
 
-# Contributing Workflow
+## Contributing Workflow
 
 1. **Create a new branch** from the `dev` branch for your feature or bugfix:
    ```
@@ -39,27 +45,31 @@ python app.py <display_name> <user_name> [avatar_source_file]
 
 ## Task Distribution Table
 
-| Task/Role                               | Esponilla | Tan      | Member 3 | Member 4 |
-| --------------------------------------- | --------- | -------- | -------- | -------- |
-| **Network Communication**               |           |          |          |          |
-| UDP Socket Setup                        | Primary   |          |          |          |
-| mDNS Discovery Integration              | Primary   |          |          |          |
-| IP Address Logging                      | Primary   |          |          |          |
-| **Core Feature Implementation**         |           |          |          |          |
-| Core Messaging (POST, DM, LIKE, FOLLOW) |           | Primary  |          |          |
-| File Transfer (Offer, Chunk, ACK)       |           |          |          |          |
-| Tic Tac Toe Game (with recovery)        |           |          |          |          |
-| Group Creation / Messaging              |           | Primary  |          |          |
-| Induced Packet Loss (Game & File)       |           |          |          |          |
-| Acknowledgement / Retry                 |           | Reviewer |          |          |
-| **UI & Logging**                        |           |          |          |          |
-| Verbose Mode Support                    |           | Secondary|          |          |
-| Terminal Grid Display                   |           |          |          |          |
-| Message Parsing & Debug Output          |           | Secondary|          |          |
-| **Testing and Validation**              |           |          |          |          |
-| Inter-group Testing                     |           |          |          |          |
-| Correct Parsing Validation              |           |          |          |          |
-| Token Expiry & IP Match                 |           | Secondary|          |          |
-| **Documentation & Coordination**        |           |          |          |          |
-| RFC & Project Report                    |           |          |          |          |
-| Milestone Tracking & Deliverables       |           |          |          |          |
+| Task/Role                               | Esponilla | Intino    | Mangubat | Tan       |
+| --------------------------------------- | --------- | --------- | -------- | --------- |
+| **Network Communication**               |           |           |          |           |
+| UDP Socket Setup                        | Primary   | Reviewer  | Reviewer | Reviewer  |
+| mDNS Discovery Integration              | Primary   | Reviewer  | Reviewer | Reviewer  |
+| IP Address Logging                      | Primary   | Reviewer  | Reviewer | Reviewer  |
+| **Core Feature Implementation**         |           |           |          |           |
+| Core Messaging (POST, DM, LIKE, FOLLOW) | Secondary | Reviewer  | Reviewer | Primary   |
+| File Transfer (Offer, Chunk, ACK)       | Reviewer  | Reviewer  | Primary  | Reviewer  |
+| Tic Tac Toe Game (with recovery)        | Reviewer  | Primary   | Reviewer | Reviewer  |
+| Group Creation / Messaging              | Reviewer  | Reviewer  | Reviewer | Primary   |
+| Induced Packet Loss (Game & File)       | Reviewer  | Secondary | Primary  | Reviewer  |
+| Acknowledgement / Retry                 | Reviewer  | Primary   | Reviewer | Reviewer  |
+| **UI & Logging**                        |           |           |          |           |
+| Verbose Mode Support                    | Secondary | Secondary | Secondary| Secondary |
+| Terminal Grid Display                   | Reviewer  | Primary   | Secondary| Reviewer  |
+| Message Parsing & Debug Output          | Secondary | Secondary | Secondary| Secondary |
+| **Testing and Validation**              |           |           |          |           |
+| Inter-group Testing                     | Secondary | Secondary | Secondary| Secondary |
+| Correct Parsing Validation              | Reviewer  | Reviewer  | Reviewer | Reviewer  |
+| Token Expiry & IP Match                 | Secondary | Secondary | Secondary| Secondary |
+| **Documentation & Coordination**        |           |           |          |           |
+| RFC & Project Report                    | Secondary | Secondary | Secondary| Secondary |
+| Milestone Tracking & Deliverables       | Primary   | Secondary | Secondary| Secondary |
+
+## Disclaimer
+
+This project used AI tools for ideation, code generation, and documentation support. AI assistance included generating boilerplate code, protocol handlers, and suggesting solutions for technical challenges. All AI-generated content was reviewed and integrated by the development team to ensure correctness and compliance with project requirements. The final implementation reflects a combination of AI support and human expertise.
