@@ -250,7 +250,7 @@ def group_message(sock: socket, group_id: str, content: str, app_state: AppState
         }
         
         # send the message to all members concerned
-        member_set: set = app_state.owned_groups[group_id].get("MEMBERS")
+        member_set: set = app_state.owned_groups.get(group_id).get("MEMBERS") | app_state.joined_groups.get(group_id).get("MEMBERS")
         for member in member_set:
             if member in app_state.peers:
                 sock.sendto(build_message(message).encode("utf-8"),
