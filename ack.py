@@ -55,7 +55,7 @@ def handle_ack(msg, app_state, sender_ip):
     with app_state.lock:
         if msg_id in app_state.pending_acks:
             del app_state.pending_acks[msg_id]
-            print(f"[ACK RECEIVED] {msg_id}")
+            # print(f"[ACK RECEIVED] {msg_id}")
 
             if globals.verbose:
                 print(f"\n[RECV <]")
