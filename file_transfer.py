@@ -5,6 +5,7 @@ import uuid
 import utils.globals as globals
 from utils import build_message
 
+
 def is_valid_token(token: str, expected_scope: str, expected_user: str = None) -> bool:
     try:
         user_id, expiry_str, scope = token.split("|")
@@ -14,6 +15,7 @@ def is_valid_token(token: str, expected_scope: str, expected_user: str = None) -
         return scope == expected_scope and time.time() <= expiry
     except Exception:
         return False
+
 
 def handle_file_offer(message, app_state, sock):
     print(f"[DEBUG] handle_file_offer called with file_id={message.get('FILEID')}")
@@ -36,9 +38,12 @@ def handle_file_offer(message, app_state, sock):
         "timestamp": int(message["TIMESTAMP"]),
     }
 
-    print(f"\nUser {sender_user} is sending you a file: {message['FILENAME']} ({message['FILESIZE']} bytes)")
+    print(
+        f"\nUser {sender_user} is sending you a file: {message['FILENAME']} ({message['FILESIZE']} bytes)"
+    )
     print(f"Description: {message.get('DESCRIPTION', 'No description')}")
-    print(f"To accept: accept_file('{file_id}')\n")
+    print(f"To see current file offers, run cmd accept_file\n")
+
 
 def accept_file(file_id, app_state, sock):
     if file_id not in app_state.pending_file_offers:
@@ -74,6 +79,7 @@ def accept_file(file_id, app_state, sock):
     sock.sendto(build_message(file_accepted_msg).encode("utf-8"), (to_ip, globals.PORT))
     print(f"[SENT] FILE_ACCEPTED for file_id={file_id} to {to_id}")
 
+
 def handle_file_chunk(message, app_state, sock, sender_ip):
     file_id = message["FILEID"]
     if file_id not in app_state.file_transfers:
@@ -96,11 +102,17 @@ def handle_file_chunk(message, app_state, sock, sender_ip):
     transfer["chunks"][chunk_index] = chunk_data
     transfer["total_chunks"] = total_chunks
 
-    print(f"[DEBUG] Received chunk {chunk_index + 1}/{total_chunks} for file '{transfer['filename']}' (file_id={file_id})")
+    from utils.globals import verbose
+
+    if verbose:
+        print(
+            f"[DEBUG] Received chunk {chunk_index + 1}/{total_chunks} for file '{transfer['filename']}' (file_id={file_id})"
+        )
 
     if len(transfer["chunks"]) == total_chunks:
         print(f"[DEBUG] All chunks received for file_id={file_id}, assembling file.")
         assemble_file(file_id, app_state, sock)
+
 
 def assemble_file(file_id, app_state, sock):
     transfer = app_state.file_transfers[file_id]
@@ -108,11 +120,15 @@ def assemble_file(file_id, app_state, sock):
     chunks = transfer["chunks"]
     total_chunks = transfer["total_chunks"]
 
+    from utils.globals import verbose
+
     save_dir = "received_files"
-    print(f"[DEBUG] Checking if directory '{save_dir}' exists...")
+    if verbose:
+        print(f"[DEBUG] Checking if directory '{save_dir}' exists...")
     try:
         os.makedirs(save_dir, exist_ok=True)
-        print(f"[DEBUG] Directory '{save_dir}' is ready.")
+        if verbose:
+            print(f"[DEBUG] Directory '{save_dir}' is ready.")
     except Exception as e:
         print(f"[ERROR] Could not create directory '{save_dir}': {e}")
         return
@@ -136,6 +152,7 @@ def assemble_file(file_id, app_state, sock):
     send_file_received(sock, app_state.user_id, transfer["from"], file_id)
     del app_state.file_transfers[file_id]
 
+
 def send_file_received(sock, from_id, to_id, file_id):
     message = {
         "TYPE": "FILE_RECEIVED",
@@ -152,6 +169,7 @@ def send_file_received(sock, from_id, to_id, file_id):
 
     ip = to_id.split("@")[1]
     sock.sendto(build_message(message).encode("utf-8"), (ip, globals.PORT))
+
 
 def send_file(sock, app_state, to_user_id, filepath, description=""):
     if not os.path.isfile(filepath):
@@ -209,6 +227,7 @@ def send_file(sock, app_state, to_user_id, filepath, description=""):
     print(f"[SENT FILE OFFER] {filepath} ({filesize} bytes) to {to_user_id}")
     print(f"Waiting for FILE_ACCEPTED to send chunks...")
 
+
 def handle_file_accepted(message, app_state):
     file_id = message.get("FILEID")
     from_id = message.get("FROM")
@@ -252,5 +271,3 @@ def handle_file_accepted(message, app_state):
 
         # Remove from pending sends after done
         del app_state.pending_file_sends[file_id]
-
-

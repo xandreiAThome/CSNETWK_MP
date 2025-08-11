@@ -213,9 +213,6 @@ def listener_loop(sock: socket, app_state: AppState):
             elif msg_type == "FILE_OFFER":
                 handle_file_offer(msg, app_state, sock)
             elif msg_type == "FILE_CHUNK":
-                print(
-                    f"[DEBUG] Incoming FILE_CHUNK for file_id={msg.get('FILEID')} from {addr[0]}"
-                )
                 handle_file_chunk(msg, app_state, sock, addr[0])
             elif msg_type == "FILE_ACCEPTED":
                 handle_file_accepted(msg, app_state)
