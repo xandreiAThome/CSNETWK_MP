@@ -141,9 +141,7 @@ def listener_loop(sock: socket, app_state: AppState):
                 "TICTACTOE_INVITE",
                 "TICTACTOE_MOVE",
                 "TICTACTOE_RESULT",
-                "FILE_OFFER",
                 "FILE_CHUNK",
-                "FILE_RECEIVED",
             }:
                 if random.random() < globals.loss_rate:
                     if globals.verbose:
