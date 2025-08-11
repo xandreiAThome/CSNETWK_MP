@@ -44,7 +44,11 @@ def main(display_name, user_name, avatar_source_file=None):
                 ascii_art = (
                     ascii_art_obj.to_terminal()
                 )  # Convert to terminal output format
-                app_state.avatar_data = ascii_art
+
+                # Encode to base64 for transmission
+                from utils.utils import encode_avatar_data
+
+                app_state.avatar_data = encode_avatar_data(ascii_art)
                 print(
                     f"[INFO] Avatar loaded and converted to ASCII art from: {avatar_source_file}"
                 )

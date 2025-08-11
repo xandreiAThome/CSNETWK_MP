@@ -41,7 +41,7 @@ def send_dm(
         # Add avatar fields if avatar data exists
         if app_state.avatar_data:
             message["AVATAR_TYPE"] = "text"
-            message["AVATAR_ENCODING"] = "utf-8"
+            message["AVATAR_ENCODING"] = "base64"
             message["AVATAR_DATA"] = app_state.avatar_data
 
         # sock.send(build_message(message).encode('utf-8'), (target_user["ip"], globals.PORT))

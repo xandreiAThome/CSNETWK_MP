@@ -24,7 +24,7 @@ def send_post(sock: socket, content: str, app_state: AppState):
         # Add avatar fields if avatar data exists
         if app_state.avatar_data:
             message["AVATAR_TYPE"] = "text"
-            message["AVATAR_ENCODING"] = "utf-8"
+            message["AVATAR_ENCODING"] = "base64"
             message["AVATAR_DATA"] = app_state.avatar_data
 
         # add to dictionary of sent posts
